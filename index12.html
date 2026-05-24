@@ -1,0 +1,53 @@
+// Supabase Edge Function: manage-uids
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const ADMIN_PASSWORD = "admin123"; // change this
+
+serve(async (req) => {
+  const { action, uid, password } = await req.json();
+
+  // Authentication
+  if (password !== ADMIN_PASSWORD) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
+
+  // Create Supabase client with service_role key (full access)
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+  );
+
+  try {
+    if (action === "list") {
+      const { data, error } = await supabaseAdmin.from("uids").select("*");
+      if (error) throw error;
+      return new Response(JSON.stringify({ uids: data }), { status: 200 });
+    }
+
+    if (action === "add") {
+      const { error } = await supabaseAdmin.from("uids").insert({ uid, active: true });
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true }), { status: 200 });
+    }
+
+    if (action === "toggle_active") {
+      // Get current state
+      const { data: row } = await supabaseAdmin.from("uids").select("active").eq("uid", uid).maybeSingle();
+      if (!row) throw new Error("UID not found");
+      const { error } = await supabaseAdmin.from("uids").update({ active: !row.active }).eq("uid", uid);
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true }), { status: 200 });
+    }
+
+    if (action === "delete") {
+      const { error } = await supabaseAdmin.from("uids").delete().eq("uid", uid);
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true }), { status: 200 });
+    }
+
+    return new Response(JSON.stringify({ error: "Invalid action" }), { status: 400 });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+  }
+});
