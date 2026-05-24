@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>JaiClub Sureshot — Elite Predictions</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --g: #00ff88; --g2: #00cc6a; --gold: #fbbf24; --red: #ff3b3b;
+            --bg: #030608; --surface: rgba(15, 25, 35, 0.65); --surface-light: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.08); --text: #f0f4f8; --muted: #8e9eae;
+        }
+        body {
+            background: radial-gradient(circle at 20% 30%, #0a121c, #020406);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text);
+            min-height: 100dvh;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
+            pointer-events: none; z-index: 999;
+        }
+        #app { position: relative; max-width: 480px; margin: 0 auto; min-height: 100dvh; }
+        .screen { position: absolute; inset: 0; overflow-y: auto; padding: 0 20px 32px; scrollbar-width: none; }
+        .screen::-webkit-scrollbar { display: none; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes number-pop { 0% { transform: scale(0.5) rotate(-10deg); opacity: 0; } 60% { transform: scale(1.15) rotate(2deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+        @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+        @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(0,255,136,0.5); } 70% { box-shadow: 0 0 0 10px rgba(0,255,136,0); } 100% { box-shadow: 0 0 0 0 rgba(0,255,136,0); } }
+        @keyframes glow-pulse { 0%,100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.1); opacity: 1; } }
+        @keyframes scanline { 0% { top: -10%; } 100% { top: 110%; } }
+        .fade-up { animation: fadeUp 0.4s cubic-bezier(0.2,0.9,0.4,1.1) both; }
+        .glass-card { background: var(--surface); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 28px; }
+        .glow-primary { box-shadow: 0 0 12px rgba(0,255,136,0.4); }
+        .press:active { transform: scale(0.96); transition: transform 0.08s ease; }
+
+        /* Splash screen */
+        #splash {
+            background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,255,136,0.18) 0%, transparent 60%),
+                        radial-gradient(ellipse 60% 50% at 50% 110%, rgba(251,191,36,0.1) 0%, transparent 60%),
+                        #030608;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+            padding: 60px 32px; min-height: 100dvh;
+        }
+        .splash-brand .badge {
+            font-family: monospace; font-size: 10px; letter-spacing: 0.3em; color: var(--g);
+            border: 1px solid rgba(0,255,136,0.4); background: rgba(0,255,136,0.06);
+            padding: 5px 14px; border-radius: 99px;
+        }
+        .splash-brand h1 {
+            font-size: 38px; font-weight: 800; background: linear-gradient(135deg, #fff 40%, var(--g) 100%);
+            -webkit-background-clip: text; background-clip: text; color: transparent; margin-top: 12px;
+        }
+        .orbital-wrap { position: relative; width: 200px; height: 200px; margin: 20px auto; }
+        .orbit-ring { position: absolute; border-radius: 50%; border: 1px solid; }
+        .orbit-ring-1 { width: 150px; height: 150px; border-color: rgba(0,255,136,0.2); animation: spin 8s linear infinite; }
+        .orbit-ring-2 { width: 190px; height: 190px; border-color: rgba(251,191,36,0.15); animation: spin 12s linear infinite reverse; }
+        .avatar-core { position: relative; width: 96px; height: 96px; margin: 52px auto 0; }
+        .avatar-glow { position: absolute; inset: -12px; border-radius: 50%; background: radial-gradient(circle, rgba(0,255,136,0.2), transparent 70%); animation: glow-pulse 2.5s ease-in-out infinite; }
+        .avatar-img, .avatar-fallback {
+            width: 96px; height: 96px; border-radius: 50%; object-fit: cover; background: linear-gradient(145deg, #0d1a12, #050a07);
+            border: 2px solid rgba(0,255,136,0.4); display: flex; align-items: center; justify-content: center;
+            font-size: 38px; font-weight: 800; color: var(--g); position: relative; z-index: 1;
+        }
+        .avatar-verified {
+            position: absolute; bottom: 0; right: 0; width: 28px; height: 28px; border-radius: 50%;
+            background: var(--g); color: #000; display: flex; align-items: center; justify-content: center;
+            border: 2px solid var(--bg); z-index: 3;
+        }
+        .splash-user { text-align: center; margin-top: 20px; }
+        .splash-user .name { font-size: 24px; font-weight: 700; }
+        .live-dot { width: 8px; height: 8px; background: var(--g); border-radius: 50%; animation: ping 1.5s infinite; display: inline-block; }
+        .splash-progress { width: 100%; max-width: 260px; margin-top: 20px; }
+        .progress-track { height: 3px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+        .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--g), var(--gold)); transition: width 0.1s linear; }
+
+        /* Home screen */
+        .topbar { display: flex; justify-content: space-between; align-items: center; padding: 20px 0 0; }
+        .topbar-logo { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .logo-icon { width: 40px; height: 40px; border-radius: 12px; background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.2); display: flex; align-items: center; justify-content: center; }
+        .logo-text .t1 { font-size: 14px; font-weight: 700; }
+        .logo-text .t2 { font-size: 10px; color: var(--muted); }
+        .live-badge { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 99px; padding: 6px 12px; font-size: 11px; font-weight: 600; color: #9ca3af; }
+        .hero { padding: 28px 0 8px; }
+        .hero-sub { font-size: 13px; color: var(--muted); }
+        .hero-name { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; margin-top: 4px; }
+        .hero-name span { color: var(--g); }
+        .info-card { margin-top: 16px; border-radius: 24px; background: rgba(0,255,136,0.03); border: 1px solid rgba(0,255,136,0.12); padding: 16px; position: relative; overflow: hidden; }
+        .info-scanline { position: absolute; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent); animation: scanline 4s linear infinite; pointer-events: none; }
+        .info-title { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+        .info-desc { font-size: 13px; color: #9ca3af; line-height: 1.6; }
+        .info-warn { margin-top: 10px; padding: 8px 12px; background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.15); border-radius: 12px; font-size: 11px; color: #fbbf24; }
+        .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 20px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 14px 10px; text-align: center; }
+        .stat-val { font-size: 22px; font-weight: 800; color: var(--g); }
+        .stat-lbl { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+        .options { margin-top: 28px; display: flex; flex-direction: column; gap: 12px; }
+        .opt-btn { width: 100%; border: none; cursor: pointer; border-radius: 24px; padding: 0; background: none; text-align: left; transition: transform 0.2s, box-shadow 0.2s; }
+        .opt-btn:active { transform: scale(0.97); }
+        .opt-inner { display: flex; align-items: center; gap: 16px; padding: 18px 20px; border-radius: 24px; border: 1px solid var(--border); background: var(--surface); transition: border-color 0.2s, background 0.2s; }
+        .opt-btn.green .opt-inner { border-color: rgba(0,255,136,0.2); background: rgba(0,255,136,0.04); }
+        .opt-btn.gold .opt-inner { border-color: rgba(251,191,36,0.2); background: rgba(251,191,36,0.04); }
+        .opt-icon { width: 50px; height: 50px; border-radius: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 22px; }
+        .opt-btn.green .opt-icon { background: rgba(0,255,136,0.1); color: var(--g); }
+        .opt-btn.gold .opt-icon { background: rgba(251,191,36,0.1); color: var(--gold); }
+        .opt-text { flex: 1; }
+        .opt-title { font-weight: 600; font-size: 15px; color: white; }
+        .opt-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+        .opt-arrow { color: var(--muted); flex-shrink: 0; }
+        .opt-btn.green .opt-arrow { color: var(--g); }
+        .opt-btn.gold .opt-arrow { color: var(--gold); }
+        .footer-tip { margin-top: 28px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 11px; color: var(--muted); text-align: center; }
+
+        /* Common components */
+        .screen-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 0 0; }
+        .back-btn { width: 40px; height: 40px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .screen-chip { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 99px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); background: var(--surface); }
+        .screen-chip.green { border-color: rgba(0,255,136,0.25); background: rgba(0,255,136,0.07); color: var(--g); }
+        .screen-chip.gold { border-color: rgba(251,191,36,0.25); background: rgba(251,191,36,0.07); color: var(--gold); }
+        .screen-chip.red { border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.07); color: #f87171; }
+        .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+        /* UID card */
+        .uid-info-card { margin-top: 20px; border-radius: 28px; background: var(--surface); border: 1px solid var(--border); padding: 20px; }
+        .uid-info-header { display: flex; align-items: flex-start; gap: 14px; }
+        .uid-info-icon { width: 46px; height: 46px; border-radius: 18px; background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.2); display: flex; align-items: center; justify-content: center; color: var(--g); }
+        .uid-info-content .greet { font-weight: 600; font-size: 15px; color: white; }
+        .uid-info-content .greet span { color: var(--g); }
+        .uid-steps { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+        .uid-step { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #9ca3af; }
+        .uid-step-num { width: 18px; height: 18px; border-radius: 8px; background: rgba(0,255,136,0.1); color: var(--g); font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .reg-btn { width: 100%; margin-top: 16px; height: 52px; border: none; cursor: pointer; border-radius: 20px; background: linear-gradient(135deg, var(--g2), #00a854); color: white; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 24px rgba(0,255,136,0.25); transition: transform 0.1s; }
+        .reg-btn:active { transform: scale(0.97); }
+        .warn-strip { margin-top: 12px; padding: 10px 14px; border-radius: 16px; font-size: 12px; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); color: #f87171; }
+
+        /* Input & keypad */
+        .input-section { margin-top: 24px; }
+        .input-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 10px; font-family: monospace; }
+        .input-group { display: flex; gap: 12px; margin-bottom: 12px; }
+        .uid-text-input { flex: 1; background: rgba(0,0,0,0.5); border: 1px solid var(--border); border-radius: 20px; padding: 14px 18px; color: white; font-family: monospace; font-size: 18px; letter-spacing: 1px; }
+        .uid-text-input:focus { outline: none; border-color: var(--g); }
+        .paste-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 0 18px; font-size: 14px; font-weight: 600; color: var(--g); cursor: pointer; }
+        .input-display { height: 72px; border-radius: 24px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; transition: border-color 0.2s; }
+        .input-display.has-value { border-color: rgba(0,255,136,0.25); box-shadow: 0 0 0 3px rgba(0,255,136,0.05); }
+        .input-val { font-family: monospace; font-size: 28px; font-weight: 700; letter-spacing: 0.1em; color: var(--text); }
+        .input-val.empty { color: rgba(255,255,255,0.15); font-size: 20px; letter-spacing: 0.2em; }
+        .input-count { font-family: monospace; font-size: 11px; color: var(--muted); }
+        .keypad { margin-top: 20px; display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+        .key { height: 68px; border-radius: 20px; border: none; cursor: pointer; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: white; font-size: 24px; font-weight: 700; transition: all 0.1s; }
+        .key:active { background: rgba(0,255,136,0.15); transform: scale(0.94); }
+        .key.key-action { background: linear-gradient(135deg, var(--g2), #00a854); border-color: transparent; color: black; font-weight: 800; }
+        .key.key-del { background: rgba(239,68,68,0.1); color: #ff8a8a; }
+        .keypad-note { text-align: center; font-size: 11px; color: var(--muted); margin-top: 14px; font-family: monospace; }
+
+        /* Processing */
+        #processing { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100dvh; padding: 40px 20px; }
+        .proc-ring-wrap { position: relative; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; }
+        .proc-ring { width: 80px; height: 80px; border-radius: 50%; border: 3px solid rgba(0,255,136,0.15); border-top-color: var(--g); animation: spin 0.9s linear infinite; position: absolute; }
+        .proc-ring-2 { width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(251,191,36,0.1); border-bottom-color: var(--gold); animation: spin 1.3s linear infinite reverse; position: absolute; }
+        .proc-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--g); box-shadow: 0 0 16px var(--g); }
+        .proc-title { font-size: 24px; font-weight: 800; margin-top: 28px; text-align: center; color: white; }
+        .proc-sub { font-size: 14px; color: var(--muted); margin-top: 8px; text-align: center; }
+        .proc-steps { width: 100%; margin-top: 40px; display: flex; flex-direction: column; gap: 10px; }
+        .proc-step { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); transition: all 0.3s; }
+        .proc-step.active { border-color: rgba(0,255,136,0.25); background: rgba(0,255,136,0.04); }
+        .proc-step.done { opacity: 0.5; }
+        .step-icon { width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.05); color: var(--muted); flex-shrink: 0; }
+        .proc-step.active .step-icon { background: rgba(0,255,136,0.15); color: var(--g); }
+        .step-txt { font-size: 13px; color: var(--muted); }
+        .proc-step.active .step-txt { color: var(--text); }
+
+        /* Result page premium */
+        .result-premium { text-align: center; background: linear-gradient(145deg, #0f1a1f, #03090d); border: 1px solid rgba(239,68,68,0.25); }
+        .result-icon-wrapper { width: 96px; height: 96px; margin: 0 auto; background: rgba(239,68,68,0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); border: 1px solid rgba(239,68,68,0.3); }
+        .result-status { font-family: monospace; font-size: 12px; letter-spacing: 0.15em; color: #f87171; background: rgba(248,113,113,0.1); display: inline-block; padding: 4px 16px; border-radius: 40px; margin-top: 16px; }
+        .result-title { font-size: 28px; font-weight: 800; margin-top: 16px; background: linear-gradient(135deg, #fff, #f87171); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .result-sub { font-size: 13px; color: var(--muted); margin-top: 8px; }
+        .reason-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+        .reason-card { background: rgba(0,0,0,0.3); border: 1px solid rgba(239,68,68,0.15); border-radius: 24px; padding: 18px; transition: all 0.2s; }
+        .reason-card:hover { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.05); }
+        .action-buttons { display: flex; gap: 12px; margin-top: 28px; }
+        .btn { flex: 1; padding: 14px 20px; border-radius: 40px; font-weight: 600; text-align: center; cursor: pointer; transition: all 0.2s; border: none; }
+        .btn-primary { background: linear-gradient(135deg, #00cc6a, #00ff88); color: #000; }
+        .btn-secondary { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; }
+        .btn-primary:active, .btn-secondary:active { transform: scale(0.97); }
+
+        /* Prediction screen */
+        .pred-header-card { margin-top: 20px; border-radius: 28px; background: var(--surface); border: 1px solid rgba(0,255,136,0.15); padding: 18px 20px; }
+        .pred-header-inner { display: flex; align-items: center; gap: 12px; }
+        .pred-verified-icon { width: 44px; height: 44px; border-radius: 16px; background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.2); display: flex; align-items: center; justify-content: center; color: var(--g); }
+        .pred-greet { font-weight: 600; font-size: 15px; color: white; }
+        .pred-greet span { color: var(--g); }
+        .pred-uid { font-family: monospace; font-size: 11px; color: var(--muted); margin-top: 3px; }
+        .pred-uid span { color: var(--text); }
+        .pred-mode-sub { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+        .pred-mode-title { font-weight: 600; font-size: 14px; color: white; }
+        .pred-mode-desc { font-size: 12px; color: var(--muted); margin-top: 3px; }
+        .toggle-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: 18px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 20px; padding: 4px; }
+        .toggle-btn { height: 44px; border: none; cursor: pointer; border-radius: 16px; font-size: 13px; font-weight: 600; background: none; color: var(--muted); transition: all 0.2s; }
+        .toggle-btn.active.green { background: rgba(0,255,136,0.12); color: var(--g); border: 1px solid rgba(0,255,136,0.2); }
+        .toggle-btn.active.gold { background: rgba(251,191,36,0.12); color: var(--gold); border: 1px solid rgba(251,191,36,0.2); }
+        .pred-result { border-radius: 32px; padding: 32px 20px; text-align: center; background: rgba(0,255,136,0.02); backdrop-filter: blur(12px); border: 1px solid rgba(0,255,136,0.2); animation: fadeUp 0.5s ease-out; }
+        .pred-result-label { font-family: monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--g); background: rgba(0,255,136,0.1); display: inline-block; padding: 4px 12px; border-radius: 40px; margin-bottom: 16px; }
+        .pred-number { font-size: 96px; font-weight: 800; line-height: 1; background: linear-gradient(135deg, #fff, var(--g)); -webkit-background-clip: text; background-clip: text; color: transparent; animation: number-pop 0.5s ease-out; }
+        .pred-bigsmall { font-size: 58px; font-weight: 800; line-height: 1; animation: number-pop 0.5s ease-out; }
+        .pred-bigsmall.big { background: linear-gradient(135deg, #fff, var(--g)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .pred-bigsmall.small { background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .pred-confirm { margin-top: 20px; font-size: 13px; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .pred-confirm::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--g); }
+        .pred-loading { border-radius: 32px; padding: 32px 20px; text-align: center; background: rgba(0,0,0,0.4); border: 1px solid var(--border); }
+        .pred-loading-label { font-size: 14px; color: var(--muted); }
+        .pred-loading-ring { width: 42px; height: 42px; margin: 18px auto 0; border-radius: 50%; border: 2px solid rgba(0,255,136,0.2); border-top-color: var(--g); animation: spin 0.8s linear infinite; }
+
+        /* Admin panel professional (password required every time) */
+        .admin-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.92); backdrop-filter: blur(12px);
+            z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;
+            animation: fadeUp 0.3s ease;
+        }
+        .admin-container {
+            width: 100%; max-width: 520px; max-height: 85vh;
+            background: #0c1119; border-radius: 36px; border: 1px solid rgba(0,255,136,0.25);
+            display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        .admin-header { padding: 20px 24px; background: rgba(0,255,136,0.04); border-bottom: 1px solid rgba(0,255,136,0.15); display: flex; justify-content: space-between; align-items: center; }
+        .admin-header h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; color: var(--g); }
+        .admin-close { width: 36px; height: 36px; background: rgba(255,255,255,0.05); border-radius: 50%; border: none; color: var(--muted); font-size: 20px; cursor: pointer; transition: all 0.2s; }
+        .admin-close:hover { background: rgba(255,255,255,0.1); color: white; }
+        .admin-search { padding: 16px 20px; background: #080c12; border-bottom: 1px solid #1a212a; }
+        .admin-search input { width: 100%; background: #11161e; border: 1px solid #232b34; border-radius: 30px; padding: 12px 18px; color: white; font-size: 14px; outline: none; transition: border 0.2s; }
+        .admin-search input:focus { border-color: var(--g); }
+        .admin-list { flex: 1; overflow-y: auto; padding: 8px 16px; }
+        .admin-item { background: rgba(255,255,255,0.02); border-radius: 20px; margin-bottom: 8px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.05); transition: background 0.15s; }
+        .admin-item:hover { background: rgba(0,255,136,0.04); border-color: rgba(0,255,136,0.2); }
+        .admin-uid { font-family: monospace; font-size: 14px; font-weight: 500; letter-spacing: 0.3px; }
+        .admin-meta { display: block; font-size: 10px; color: var(--muted); margin-top: 4px; }
+        .admin-badge { display: inline-block; background: rgba(0,255,136,0.15); padding: 2px 10px; border-radius: 40px; font-size: 10px; color: var(--g); margin-left: 8px; }
+        .admin-actions { display: flex; gap: 10px; }
+        .admin-actions button { background: none; border: none; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+        .admin-toggle { color: var(--gold); background: rgba(251,191,36,0.08); }
+        .admin-toggle:hover { background: rgba(251,191,36,0.2); }
+        .admin-delete { color: #ff6b6b; background: rgba(255,107,107,0.08); }
+        .admin-delete:hover { background: rgba(255,107,107,0.2); }
+        .admin-add { padding: 16px 20px; background: #080c12; border-top: 1px solid #1a212a; display: flex; gap: 10px; }
+        .admin-add input { flex: 1; background: #11161e; border: 1px solid #232b34; border-radius: 30px; padding: 12px 18px; color: white; font-family: monospace; font-size: 14px; }
+        .admin-add button { background: var(--g); border: none; border-radius: 30px; padding: 0 24px; font-weight: 600; color: black; cursor: pointer; transition: opacity 0.2s; }
+        .admin-add button:active { transform: scale(0.97); }
+        .admin-logout { margin-top: 12px; text-align: center; padding-bottom: 16px; }
+        .admin-logout button { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 30px; color: var(--muted); cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+    // ==================== TELEGRAM USER DATA (with photo) ====================
+    const tg = window.Telegram?.WebApp;
+    const initUser = tg?.initDataUnsafe?.user || { first_name: "Demo", last_name: "User", username: "demo_user", photo_url: null };
+    const user = {
+        id: initUser.id?.toString() || "demo",
+        first_name: initUser.first_name || "Demo",
+        last_name: initUser.last_name || "",
+        username: initUser.username || "demo_user",
+        photo_url: initUser.photo_url || null
+    };
+    if (tg) {
+        tg.ready();
+        tg.expand();
+        tg.setHeaderColor("#030608");
+        tg.setBackgroundColor("#030608");
+    }
+
+    // ==================== MOCK BACKEND (localStorage) ====================
+    let mockUIDs = JSON.parse(localStorage.getItem("mock_uids") || '[{"uid":"123456789012","active":true,"deviceId":null},{"uid":"987654321098","active":false,"deviceId":null}]');
+    function saveMockUIDs() { localStorage.setItem("mock_uids", JSON.stringify(mockUIDs)); }
+    const MASTER_UID = "928616";
+    let deviceId = localStorage.getItem("device_id") || ("dev_" + Math.random().toString(36).slice(2) + Date.now());
+    localStorage.setItem("device_id", deviceId);
+
+    // Admin session (no persistent token)
+    let adminLoggedIn = false;
+
+    async function mockVerify(uid) {
+        await new Promise(r => setTimeout(r, 1800));
+        if (uid === MASTER_UID) return { ok: true };
+        const entry = mockUIDs.find(e => e.uid === uid);
+        if (!entry) return { ok: false, reason: "not_verified" };
+        if (!entry.active) return { ok: false, reason: "not_verified" };
+        if (entry.deviceId && entry.deviceId !== deviceId) return { ok: false, reason: "device_mismatch" };
+        if (!entry.deviceId) { entry.deviceId = deviceId; saveMockUIDs(); }
+        return { ok: true };
+    }
+
+    async function mockPredict(period, type) {
+        await new Promise(r => setTimeout(r, 900));
+        const seed = (parseInt(period) || 1) * 3 + 7;
+        if (type === "number") return { value: String(seed % 10) };
+        return { value: seed % 2 === 0 ? "BIG" : "SMALL" };
+    }
+
+    // Admin functions – always ask for password
+    async function checkAdminPassword() {
+        const pwd = prompt("🔐 Admin access required\nEnter password:");
+        if (pwd === "admin123") {
+            adminLoggedIn = true;
+            return true;
+        }
+        alert("Wrong password");
+        return false;
+    }
+
+    async function openAdmin() {
+        if (!adminLoggedIn) {
+            const ok = await checkAdminPassword();
+            if (!ok) return;
+        }
+        appState.adminOpen = true;
+        render();
+    }
+
+    function closeAdmin() { appState.adminOpen = false; render(); }
+    function logoutAdmin() { adminLoggedIn = false; closeAdmin(); }
+
+    // UID management (requires adminLoggedIn)
+    async function addUID() {
+        if (!adminLoggedIn) { alert("Not authenticated"); return; }
+        const inp = document.getElementById("new-uid-input");
+        const uid = inp.value.trim();
+        if (!uid || !/^\d+$/.test(uid)) { alert("Invalid UID (digits only)"); return; }
+        if (mockUIDs.some(e => e.uid === uid)) { alert("UID already exists"); return; }
+        mockUIDs.push({ uid, active: true, deviceId: null });
+        saveMockUIDs();
+        inp.value = "";
+        render();
+    }
+    async function toggleUID(uid) {
+        if (!adminLoggedIn) { alert("Not authenticated"); return; }
+        const e = mockUIDs.find(e => e.uid === uid);
+        if (e) e.active = !e.active;
+        saveMockUIDs();
+        render();
+    }
+    async function deleteUID(uid) {
+        if (!adminLoggedIn) { alert("Not authenticated"); return; }
+        if (confirm("Delete this UID?")) {
+            mockUIDs = mockUIDs.filter(e => e.uid !== uid);
+            saveMockUIDs();
+            render();
+        }
+    }
+
+    // ==================== APP STATE ====================
+    let appState = {
+        screen: "splash",
+        option: null,
+        uid: "",
+        verifiedUid: null,
+        failReason: "",
+        period: "",
+        prediction: null,
+        loading: false,
+        procStep: 0,
+        adminOpen: false,
+        adminSearch: ""
+    };
+
+    function haptic(style) { if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred(style); }
+    function go(screen) { appState.screen = screen; render(); }
+    function chooseOption(opt) { appState.option = opt; appState.prediction = null; appState.period = ""; go(appState.verifiedUid ? "prediction" : "uid"); }
+    function setUid(value) { appState.uid = value.slice(0, 20); render(); }
+    function typeUid(d) { appState.uid = (appState.uid + d).slice(0, 20); render(); }
+    function delUid() { appState.uid = appState.uid.slice(0, -1); render(); }
+    function pasteFromClipboard() { navigator.clipboard.readText().then(text => { setUid(text.replace(/\D/g, '')); }).catch(() => alert("Paste not allowed")); }
+    async function submitUid() {
+        if (!appState.uid) { shake("uid-display"); haptic("error"); return; }
+        appState.procStep = 0; go("processing");
+        setTimeout(() => { appState.procStep = 1; render(); }, 700);
+        setTimeout(() => { appState.procStep = 2; render(); }, 1400);
+        const res = await mockVerify(appState.uid);
+        if (res.ok) { appState.verifiedUid = appState.uid; go("prediction"); }
+        else { appState.failReason = res.reason; go("result"); }
+    }
+    function typePeriod(d) { if (appState.period.length < 3) { appState.period += d; render(); } }
+    function delPeriod() { appState.period = appState.period.slice(0, -1); render(); }
+    async function submitPeriod() {
+        if (appState.period.length < 3) { shake("period-display"); haptic("error"); return; }
+        appState.loading = true; render();
+        const pred = await mockPredict(appState.period, appState.option);
+        if (pred) appState.prediction = pred;
+        appState.loading = false; render();
+    }
+    function switchOpt(opt) { appState.option = opt; appState.prediction = null; appState.period = ""; render(); }
+    function resetHome() { appState = { ...appState, screen: "home", option: null, uid: "", period: "", prediction: null, failReason: "", loading: false, procStep: 0, adminOpen: false, adminSearch: "" }; render(); }
+    function retryUid() { appState.failReason = ""; go("uid"); }
+    function shake(id) { const el = document.getElementById(id); if (el) { el.style.animation = "shake 0.4s ease-in-out"; setTimeout(() => el.style.animation = "", 400); } }
+
+    // ==================== RENDER ====================
+    function renderSplash() {
+        const firstLetter = user.first_name[0]?.toUpperCase() || "D";
+        const avatarHtml = user.photo_url
+            ? `<img src="${user.photo_url}" class="avatar-img" referrerpolicy="no-referrer">`
+            : `<div class="avatar-fallback">${firstLetter}</div>`;
+        return `<div id="splash">
+            <div class="splash-brand fade-up"><div class="badge">⚡ PREMIUM BOT</div><h1>JaiClub<br>Sureshot</h1><p>India's No.1 Colour Prediction</p></div>
+            <div class="orbital-wrap fade-up">
+                <div class="orbit-ring orbit-ring-1"></div>
+                <div class="orbit-ring orbit-ring-2"></div>
+                <div class="avatar-core"><div class="avatar-glow"></div>${avatarHtml}<div class="avatar-verified"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+            </div>
+            <div class="splash-user fade-up"><div class="name">${user.first_name} ${user.last_name}</div><div class="handle">@${user.username}</div></div>
+            <div class="fade-up" style="display:flex;gap:8px;background:rgba(255,255,255,0.05);border-radius:99px;padding:8px 20px;font-size:13px;"><span class="live-dot"></span>Launching your hack 🚀</div>
+            <div class="splash-progress fade-up"><div class="progress-track"><div class="progress-fill" id="pfill"></div></div><div style="text-align:center;margin-top:8px;font-size:11px;">INITIALIZING <span id="pct">0%</span></div></div>
+        </div>`;
+    }
+
+    function startSplash() {
+        let p = 0;
+        const iv = setInterval(() => {
+            p += Math.random() * 18 + 6;
+            if (p >= 100) { clearInterval(iv); setTimeout(() => go("home"), 300); }
+            const fill = document.getElementById("pfill");
+            const pct = document.getElementById("pct");
+            if (fill) fill.style.width = Math.min(p, 100) + "%";
+            if (pct) pct.innerText = Math.min(Math.round(p), 100) + "%";
+        }, 160);
+    }
+
+    function renderHome() {
+        return `<div class="screen"><div class="topbar"><div class="topbar-logo" id="logo-trigger"><div class="logo-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--g)" stroke-width="1.8"><path d="M12 2L4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6l-8-4z"/><path d="M9 12l2 2 4-4"/></svg></div><div class="logo-text"><div class="t1">JaiClub</div><div class="t2">Sureshot · Premium</div></div></div><div class="live-badge"><span class="live-dot"></span>Live</div></div>
+        <div class="hero"><div class="hero-sub">Welcome back</div><div class="hero-name">Hey ${user.first_name} <span>👋</span></div></div>
+        <div class="info-card"><div class="info-scanline"></div><div class="info-title">🏆 JaiClubGame Prediction Bot</div><div class="info-desc">94% accuracy · Official UID required</div><div class="info-warn">⚠️ Only UIDs from official registration work</div></div>
+        <div class="stats-row"><div class="stat-card"><div class="stat-val">94%</div><div class="stat-lbl">Accuracy</div></div><div class="stat-card"><div class="stat-val">12.4K</div><div class="stat-lbl">Members</div></div><div class="stat-card"><div class="stat-val">38✓</div><div class="stat-lbl">Today</div></div></div>
+        <div class="options">${optCard("green", "number", "🎯", "Get Number Sureshot", "Single-digit hit rate")}${optCard("gold", "bigsmall", "📊", "Get Big / Small Sureshot", "Best big-small forecast")}${optCard("gray", "support", "💬", "Contact Support", "Talk to admin")}</div>
+        <div class="footer-tip">⚡ Pro tip — Only official link registered UIDs are accepted</div></div>`;
+    }
+
+    function optCard(color, id, emoji, title, sub) {
+        const onclick = id === "support" ? "window.open('https://t.me/Shetty_Bhaiii','_blank')" : `chooseOption('${id}')`;
+        return `<button class="opt-btn ${color}" onclick="${onclick}"><div class="opt-inner"><div class="opt-icon">${emoji}</div><div class="opt-text"><div class="opt-title">${title}</div><div class="opt-sub">${sub}</div></div><div class="opt-arrow"><svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div></div></button>`;
+    }
+
+    function backBtn(onclick) {
+        return `<button class="back-btn" onclick="${onclick}"><svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg></button>`;
+    }
+
+    function renderUid() {
+        const name = appState.option === "number" ? "Number Sureshot" : "Big / Small Sureshot";
+        return `<div class="screen"><div class="screen-header">${backBtn("resetHome()")}<div class="screen-chip gold"><span class="chip-dot"></span>${name}</div><div style="width:40px;"></div></div>
+        <div class="uid-info-card"><div class="uid-info-header"><div class="uid-info-icon"><svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 10h18"/><path d="M8 14h4"/></svg></div><div><div class="greet">Hey <span>${user.first_name}</span> 🧑‍💻 Welcome</div><div class="uid-steps"><div class="uid-step"><span class="uid-step-num">1</span>Official link registration</div><div class="uid-step"><span class="uid-step-num">2</span>Register below</div><div class="uid-step"><span class="uid-step-num">3</span>Enter your UID</div></div></div></div><button class="reg-btn" onclick="window.open('https://www.jaiclub40.com/#/register?invitationCode=27868186702','_blank')"><svg width="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Register on Official Site</button><div class="warn-strip">⚠️ Using an unofficial link → verification fails</div></div>
+        <div class="input-section"><div class="input-label">Enter your UID</div><div class="input-group"><input type="text" id="uid-text-input" class="uid-text-input" placeholder="Type or paste UID" value="${appState.uid}" oninput="setUid(this.value.replace(/\\D/g,''))"><button class="paste-btn" onclick="pasteFromClipboard()">📋 Paste</button></div><div class="input-display ${appState.uid ? 'has-value' : ''}" id="uid-display"><div class="input-val ${appState.uid ? '' : 'empty'}">${appState.uid || '············'}</div><div class="input-count">${appState.uid.length}</div></div></div>
+        <div class="keypad">${"123456789".split("").map(d => `<button class="key" onclick="typeUid('${d}')">${d}</button>`).join("")}<button class="key key-del" onclick="delUid()"><svg width="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 5H8L2 12l6 7h13a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg></button><button class="key" onclick="typeUid('0')">0</button><button class="key key-action" onclick="submitUid()"><svg width="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></button></div>
+        <div class="keypad-note">🔒 Secure keypad + paste allowed</div></div>`;
+    }
+
+    function renderProcessing() {
+        const steps = ["Connecting to server...", "Checking UID & device", "Validating source..."];
+        return `<div id="processing"><div class="proc-ring-wrap"><div class="proc-ring"></div><div class="proc-ring-2"></div><div class="proc-dot"></div></div>
+        <div class="proc-title">Verifying UID</div><div class="proc-sub">Please wait</div><div class="proc-steps">${steps.map((t, i) => `<div class="proc-step ${i < appState.procStep ? 'done' : i === appState.procStep ? 'active' : ''}"><div class="step-icon">${i < appState.procStep ? '✓' : i + 1}</div><div class="step-txt">${t}</div></div>`).join("")}</div></div>`;
+    }
+
+    function renderResult() {
+        const lock = appState.failReason === "device_mismatch";
+        return `<div class="screen"><div class="screen-header">${backBtn("resetHome()")}<div class="screen-chip red"><span class="chip-dot"></span>${lock ? "Device Locked" : "Failed"}</div><div style="width:40px;"></div></div>
+        <div class="glass-card result-premium" style="padding:32px 20px;">
+            <div class="result-icon-wrapper">
+                ${lock ? '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ff5a5a" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' : '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ff5a5a" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'}
+            </div>
+            <div class="result-status">⚠️ VERIFICATION FAILED</div>
+            <div class="result-title">${lock ? "UID Locked" : "Invalid UID"}</div>
+            <div class="result-sub">UID: <span style="font-family:monospace;color:white;">${appState.uid}</span></div>
+        </div>
+        <div class="reason-grid">
+            ${lock ? `
+                <div class="reason-card"><div style="display:flex;gap:14px;"><span style="font-size:28px;">🔒</span><div><strong>Device mismatch</strong><br>This UID is already bound to another device. One UID = one device.</div></div></div>
+                <div class="reason-card"><div style="display:flex;gap:14px;"><span style="font-size:28px;">💬</span><div><strong>Need to unbind?</strong><br>Contact admin @Shetty_Bhaiii to reset device binding.</div></div></div>
+            ` : `
+                <div class="reason-card"><div style="display:flex;gap:14px;"><span style="font-size:28px;">🚨</span><div><strong>Bot not activated</strong><br>Recharge ₹200 to activate your UID.</div></div></div>
+                <div class="reason-card"><div style="display:flex;gap:14px;"><span style="font-size:28px;">⚠️</span><div><strong>Wrong registration source</strong><br>Only UIDs from the official registration link are accepted.</div></div></div>
+            `}
+        </div>
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="${lock ? "window.open('https://t.me/Shetty_Bhaiii','_blank')" : "window.open('https://www.jaiclub40.com/#/register?invitationCode=27868186702','_blank')"}">${lock ? "Contact Admin" : "Register Now"}</button>
+        </div>
+        <div class="action-buttons">
+            <button class="btn btn-secondary" onclick="retryUid()">Re-enter UID</button>
+            <button class="btn btn-secondary" onclick="resetHome()">Home</button>
+        </div>
+        </div>`;
+    }
+
+    function renderPrediction() {
+        const isNum = appState.option === "number";
+        return `<div class="screen"><div class="screen-header">${backBtn("resetHome()")}<div class="screen-chip green"><span class="chip-dot"></span>Verified</div><div style="width:40px;"></div></div>
+        <div class="pred-header-card"><div class="pred-header-inner"><div class="pred-verified-icon"><svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="pred-greet">Welcome <span>${user.first_name}</span> ✓</div><div class="pred-uid">UID <span>${appState.verifiedUid}</span> verified</div></div></div><div class="pred-mode-sub"><div class="pred-mode-title">${isNum ? "Number Sureshot" : "Big / Small Sureshot"}</div><div class="pred-mode-desc">Enter period number</div></div></div>
+        <div class="toggle-row"><button class="toggle-btn ${isNum ? 'active green' : ''}" onclick="switchOpt('number')">🎯 Number</button><button class="toggle-btn ${!isNum ? 'active gold' : ''}" onclick="switchOpt('bigsmall')">📊 Big/Small</button></div>
+        <div class="input-section"><div class="input-label">Period Number</div><div id="period-display" class="input-display"><div class="input-val ${appState.period ? '' : 'empty'}">${appState.period || 'e.g. 247'}</div><div class="input-count">${appState.period.length}/3</div></div></div>
+        <div style="margin:16px 0;">${appState.loading ? `<div class="glass-card" style="padding:24px;text-align:center;"><div>Generating prediction...</div><div class="pred-loading-ring"></div></div>` : (appState.prediction ? `<div class="pred-result"><div class="pred-result-label">Sureshot · Period ${appState.prediction.period}</div>${isNum ? `<div class="pred-number">${appState.prediction.value}</div>` : `<div class="pred-bigsmall ${appState.prediction.value === 'BIG' ? 'big' : 'small'}">${appState.prediction.value}</div>`}<div class="pred-confirm">✓ Locked prediction · play with confidence</div></div>` : "")}</div>
+        <div class="keypad">${"123456789".split("").map(d => `<button class="key" onclick="typePeriod('${d}')">${d}</button>`).join("")}<button class="key key-del" onclick="delPeriod()"><svg width="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 5H8L2 12l6 7h13a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg></button><button class="key" onclick="typePeriod('0')">0</button><button class="key key-action" onclick="submitPeriod()">${appState.loading ? '<div style="width:24px;height:24px;border:2px solid white;border-top-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite;"></div>' : '<svg width="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>'}</button></div>
+        <div class="keypad-note">Tap again to re-roll</div></div>`;
+    }
+
+    async function renderAdminPanel() {
+        if (!appState.adminOpen) return "";
+        let filtered = mockUIDs.filter(e => e.uid.includes(appState.adminSearch));
+        return `<div class="admin-overlay" onclick="if(event.target===this) closeAdmin()"><div class="admin-container"><div class="admin-header"><h2>Admin Console</h2><button class="admin-close" onclick="closeAdmin()">✕</button></div><div class="admin-search"><input type="text" placeholder="Search UID" id="admin-search" value="${appState.adminSearch}" oninput="appState.adminSearch=this.value; render()"></div><div class="admin-list">${filtered.map(e => `<div class="admin-item"><div><div class="admin-uid">${e.uid}${e.uid === MASTER_UID ? '<span class="admin-badge">MASTER</span>' : ''}</div><div class="admin-meta">${e.deviceId ? '🔒 Bound' : '📱 Free'} · ${e.active ? 'Active' : 'Inactive'}</div></div><div class="admin-actions"><button class="admin-toggle" onclick="toggleUID('${e.uid}')">${e.active ? 'Deactivate' : 'Activate'}</button><button class="admin-delete" onclick="deleteUID('${e.uid}')">Delete</button></div></div>`).join('')}</div><div class="admin-add"><input id="new-uid-input" placeholder="Add new UID (digits only)"><button onclick="addUID()">Add</button></div><div class="admin-logout"><button onclick="logoutAdmin()">Logout</button></div></div></div>`;
+    }
+
+    async function render() {
+        const app = document.getElementById("app");
+        if (!app) return;
+        if (appState.screen === "splash") {
+            app.innerHTML = renderSplash();
+            startSplash();
+            return;
+        }
+        let mainHtml = "";
+        switch (appState.screen) {
+            case "home": mainHtml = renderHome(); break;
+            case "uid": mainHtml = renderUid(); break;
+            case "processing": mainHtml = renderProcessing(); break;
+            case "result": mainHtml = renderResult(); break;
+            case "prediction": mainHtml = renderPrediction(); break;
+            default: mainHtml = renderHome();
+        }
+        const adminHtml = await renderAdminPanel();
+        app.innerHTML = mainHtml + adminHtml;
+        if (appState.screen === "home") {
+            const logo = document.getElementById("logo-trigger");
+            if (logo && !logo._tapHandler) {
+                let tap = 0, t = null;
+                const handler = () => { tap++; if (t) clearTimeout(t); t = setTimeout(() => tap = 0, 800); if (tap >= 5) { tap = 0; openAdmin(); } };
+                logo.addEventListener("click", handler);
+                logo._tapHandler = handler;
+            }
+        }
+        if (appState.screen === "uid") {
+            const inputEl = document.getElementById("uid-text-input");
+            if (inputEl) inputEl.focus();
+        }
+    }
+
+    // Expose globals
+    window.chooseOption = chooseOption;
+    window.setUid = setUid;
+    window.typeUid = typeUid;
+    window.delUid = delUid;
+    window.submitUid = submitUid;
+    window.resetHome = resetHome;
+    window.retryUid = retryUid;
+    window.typePeriod = typePeriod;
+    window.delPeriod = delPeriod;
+    window.submitPeriod = submitPeriod;
+    window.switchOpt = switchOpt;
+    window.pasteFromClipboard = pasteFromClipboard;
+    window.openAdmin = openAdmin;
+    window.closeAdmin = closeAdmin;
+    window.logoutAdmin = logoutAdmin;
+    window.addUID = addUID;
+    window.toggleUID = toggleUID;
+    window.deleteUID = deleteUID;
+
+    render();
+</script>
+</body>
+</html>
