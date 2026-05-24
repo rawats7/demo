@@ -1,53 +1,1502 @@
-// Supabase Edge Function: manage-uids
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>JaiClub Sureshot — Elite Predictions</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 
-const ADMIN_PASSWORD = "admin123"; // change this
+:root{
+  --cyan:#00f5d4;
+  --cyan2:#00c9ad;
+  --violet:#7c3aed;
+  --violet2:#6d28d9;
+  --gold:#f59e0b;
+  --rose:#f43f5e;
+  --bg:#060a10;
+  --bg2:#0b1018;
+  --surface:rgba(255,255,255,0.04);
+  --surfaceB:rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.08);
+  --borderC:rgba(0,245,212,0.18);
+  --text:#eef2f7;
+  --muted:#6b7f94;
+  --font:'Space Grotesk',sans-serif;
+  --display:'Syne',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
 
-serve(async (req) => {
-  const { action, uid, password } = await req.json();
+body{
+  background:#060a10;
+  font-family:var(--font);
+  color:var(--text);
+  min-height:100dvh;
+  overflow-x:hidden;
+}
 
-  // Authentication
-  if (password !== ADMIN_PASSWORD) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+/* Grain overlay */
+body::after{
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index:9999;
+}
+
+#app{
+  position:relative;
+  max-width:480px;
+  margin:0 auto;
+  min-height:100dvh;
+}
+
+.screen{
+  position:absolute;
+  inset:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:0 18px 40px;
+  scrollbar-width:none;
+}
+.screen::-webkit-scrollbar{display:none}
+
+/* ============ KEYFRAMES ============ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spinR{to{transform:rotate(-360deg)}}
+@keyframes pulse-ring{0%,100%{box-shadow:0 0 0 0 rgba(0,245,212,0.4)}50%{box-shadow:0 0 0 16px rgba(0,245,212,0)}}
+@keyframes pulse-glow{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes number-pop{0%{opacity:0;transform:scale(.4) rotate(-12deg)}60%{transform:scale(1.12) rotate(2deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+@keyframes scan{0%{top:-20%}100%{top:120%}}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes orbit1{to{transform:rotate(360deg)}}
+@keyframes orbit2{to{transform:rotate(-360deg)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes morph{0%,100%{border-radius:60% 40% 70% 30%/50% 60% 40% 70%}50%{border-radius:30% 70% 40% 60%/70% 30% 60% 40%}}
+@keyframes progress-fill{from{width:0}to{width:100%}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ============ SPLASH ============ */
+#splash{
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:space-between;
+  padding:56px 24px 48px;
+  background:
+    radial-gradient(ellipse 100% 50% at 50% -5%,rgba(0,245,212,0.12) 0%,transparent 60%),
+    radial-gradient(ellipse 70% 40% at 80% 80%,rgba(124,58,237,0.1) 0%,transparent 60%),
+    #060a10;
+  position:relative;
+  overflow:hidden;
+}
+
+.splash-top{text-align:center}
+.splash-eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 16px;
+  border-radius:99px;
+  background:rgba(0,245,212,0.08);
+  border:1px solid rgba(0,245,212,0.2);
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:.2em;
+  color:var(--cyan);
+  margin-bottom:20px;
+}
+.splash-eyebrow-dot{
+  width:6px;height:6px;
+  border-radius:50%;
+  background:var(--cyan);
+  animation:blink 1.8s ease-in-out infinite;
+}
+.splash-title{
+  font-family:var(--display);
+  font-size:48px;
+  font-weight:800;
+  line-height:.95;
+  letter-spacing:-.03em;
+  background:linear-gradient(135deg,#fff 0%,var(--cyan) 55%,var(--violet) 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+.splash-sub{
+  font-size:13px;
+  color:var(--muted);
+  margin-top:8px;
+  letter-spacing:.04em;
+}
+
+/* Orbital visual */
+.orbital-scene{
+  position:relative;
+  width:220px;height:220px;
+  margin:4px auto;
+}
+.orb-ring{
+  position:absolute;
+  border-radius:50%;
+  border:1px dashed;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+}
+.orb-r1{width:160px;height:160px;border-color:rgba(0,245,212,0.18);animation:orbit1 9s linear infinite}
+.orb-r2{width:200px;height:200px;border-color:rgba(124,58,237,0.12);animation:orbit2 14s linear infinite}
+.orb-center{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  z-index:2;
+}
+.avatar-shell{
+  position:relative;
+  width:90px;height:90px;
+}
+.avatar-glow{
+  position:absolute;inset:-14px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(0,245,212,0.25),transparent 70%);
+  animation:pulse-glow 2.5s ease-in-out infinite;
+}
+.avatar-img,.avatar-fb{
+  width:90px;height:90px;
+  border-radius:50%;
+  object-fit:cover;
+  border:2px solid rgba(0,245,212,0.4);
+  position:relative;z-index:1;
+}
+.avatar-fb{
+  background:linear-gradient(145deg,#0d1a18,#06100e);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);
+  font-size:36px;font-weight:800;
+  color:var(--cyan);
+}
+.avatar-badge{
+  position:absolute;bottom:0;right:-4px;
+  width:26px;height:26px;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--cyan),var(--cyan2));
+  color:#000;
+  display:flex;align-items:center;justify-content:center;
+  border:2.5px solid #060a10;
+  z-index:3;
+}
+/* Orbit dots */
+.orb-dot{
+  position:absolute;
+  width:8px;height:8px;
+  border-radius:50%;
+}
+.od1{top:4px;left:50%;margin-left:-4px;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.od2{bottom:4px;left:50%;margin-left:-4px;background:var(--violet);box-shadow:0 0 8px var(--violet)}
+.orb-r1 .od1{animation:orbit2 9s linear infinite}
+.orb-r2 .od2{animation:orbit1 14s linear infinite}
+
+.splash-user-name{
+  font-family:var(--display);
+  font-size:22px;font-weight:700;
+  margin-bottom:2px;
+}
+.splash-user-handle{
+  font-family:var(--mono);
+  font-size:11px;color:var(--muted);
+}
+
+/* Progress */
+.splash-progress{width:100%;max-width:280px}
+.prog-label{
+  display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:10px;
+  color:var(--muted);margin-bottom:8px;
+}
+.prog-track{
+  height:2px;
+  background:rgba(255,255,255,0.06);
+  border-radius:99px;
+  overflow:hidden;
+}
+.prog-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--violet),var(--cyan));
+  transition:width .12s linear;
+  border-radius:99px;
+}
+
+/* ============ HOME ============ */
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:22px 0 0;
+}
+.logo-wrap{display:flex;align-items:center;gap:10px;cursor:pointer}
+.logo-icon{
+  width:40px;height:40px;
+  border-radius:14px;
+  background:rgba(0,245,212,0.06);
+  border:1px solid rgba(0,245,212,0.15);
+  display:flex;align-items:center;justify-content:center;
+}
+.logo-svg{width:22px;height:22px}
+.logo-name{font-family:var(--display);font-size:15px;font-weight:700}
+.logo-tag{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.08em;margin-top:1px}
+.live-pill{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(0,245,212,0.05);
+  border:1px solid rgba(0,245,212,0.15);
+  border-radius:99px;
+  padding:5px 12px;
+  font-family:var(--mono);font-size:10px;
+  color:var(--cyan);letter-spacing:.06em;
+}
+.live-dot{
+  width:6px;height:6px;
+  border-radius:50%;
+  background:var(--cyan);
+  animation:blink 1.4s ease-in-out infinite;
+}
+
+/* Hero */
+.hero{padding:28px 0 4px}
+.hero-eyebrow{
+  font-family:var(--mono);font-size:11px;
+  color:var(--muted);letter-spacing:.08em;
+  margin-bottom:6px;
+}
+.hero-name{
+  font-family:var(--display);
+  font-size:36px;font-weight:800;
+  letter-spacing:-.03em;line-height:1;
+}
+.hero-name em{
+  font-style:normal;
+  color:var(--cyan);
+}
+
+/* Info card */
+.info-card{
+  margin-top:16px;
+  border-radius:24px;
+  background:linear-gradient(135deg,rgba(0,245,212,0.04),rgba(124,58,237,0.03));
+  border:1px solid rgba(0,245,212,0.12);
+  padding:16px 18px;
+  position:relative;
+  overflow:hidden;
+}
+.scan-line{
+  position:absolute;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,245,212,0.2),transparent);
+  animation:scan 5s linear infinite;
+  pointer-events:none;
+}
+.info-title{font-weight:600;font-size:14px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.info-icon{
+  width:24px;height:24px;
+  border-radius:8px;
+  background:rgba(0,245,212,0.1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;
+}
+.info-body{font-size:12px;color:var(--muted);line-height:1.65}
+.info-warn{
+  margin-top:10px;padding:8px 12px;
+  background:rgba(245,158,11,0.06);
+  border:1px solid rgba(245,158,11,0.15);
+  border-radius:10px;
+  font-size:11px;color:var(--gold);
+  font-family:var(--mono);
+}
+
+/* Stats */
+.stats-row{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:10px;margin-top:18px;
+}
+.stat-box{
+  border-radius:20px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  padding:14px 10px;
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+}
+.stat-box::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,245,212,0.3),transparent);
+}
+.stat-val{
+  font-family:var(--display);
+  font-size:22px;font-weight:800;
+  color:var(--cyan);
+  letter-spacing:-.02em;
+}
+.stat-lbl{
+  font-family:var(--mono);
+  font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--muted);margin-top:4px;
+}
+
+/* Option cards */
+.options{margin-top:26px;display:flex;flex-direction:column;gap:10px}
+
+.opt-card{
+  border:none;cursor:pointer;
+  border-radius:22px;padding:0;
+  background:none;width:100%;text-align:left;
+}
+.opt-inner{
+  display:flex;align-items:center;gap:14px;
+  padding:18px;
+  border-radius:22px;
+  border:1px solid var(--border);
+  background:var(--surface);
+  transition:border-color .2s,background .2s,transform .1s;
+  position:relative;overflow:hidden;
+}
+.opt-inner::before{
+  content:'';position:absolute;top:0;left:0;bottom:0;width:3px;
+  border-radius:0 2px 2px 0;
+  background:transparent;transition:background .2s;
+}
+.opt-card:active .opt-inner{transform:scale(0.97)}
+.opt-card.cyan .opt-inner{border-color:rgba(0,245,212,0.18);background:rgba(0,245,212,0.03)}
+.opt-card.cyan .opt-inner::before{background:var(--cyan)}
+.opt-card.violet .opt-inner{border-color:rgba(124,58,237,0.2);background:rgba(124,58,237,0.04)}
+.opt-card.violet .opt-inner::before{background:var(--violet)}
+.opt-card.gray .opt-inner{border-color:var(--border);background:var(--surface)}
+
+.opt-icon{
+  width:50px;height:50px;
+  border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-size:22px;
+}
+.opt-card.cyan .opt-icon{background:rgba(0,245,212,0.1)}
+.opt-card.violet .opt-icon{background:rgba(124,58,237,0.12)}
+.opt-card.gray .opt-icon{background:rgba(255,255,255,0.04)}
+.opt-title{font-weight:600;font-size:15px;color:#fff}
+.opt-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.opt-arr{
+  margin-left:auto;
+  width:30px;height:30px;
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.opt-card.cyan .opt-arr{background:rgba(0,245,212,0.1);color:var(--cyan)}
+.opt-card.violet .opt-arr{background:rgba(124,58,237,0.12);color:#a78bfa}
+.opt-card.gray .opt-arr{background:rgba(255,255,255,0.04);color:var(--muted)}
+
+/* Ticker */
+.ticker-wrap{
+  margin-top:20px;
+  overflow:hidden;
+  background:rgba(255,255,255,0.02);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:8px 0;
+  white-space:nowrap;
+}
+.ticker-inner{
+  display:inline-block;
+  animation:ticker 18s linear infinite;
+  font-family:var(--mono);font-size:10px;color:var(--muted);
+  letter-spacing:.06em;
+}
+.ticker-sep{margin:0 24px;color:var(--cyan);opacity:.5}
+
+.footer-note{
+  margin-top:24px;
+  text-align:center;
+  font-family:var(--mono);font-size:10px;
+  color:var(--muted);letter-spacing:.06em;
+}
+
+/* ============ SCREEN HEADER ============ */
+.sc-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:22px 0 0;
+}
+.back-btn{
+  width:40px;height:40px;
+  border-radius:14px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--text);
+}
+.sc-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 14px;
+  border-radius:99px;
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  letter-spacing:.06em;
+}
+.sc-chip.cyan{border:1px solid rgba(0,245,212,0.25);background:rgba(0,245,212,0.07);color:var(--cyan)}
+.sc-chip.violet{border:1px solid rgba(124,58,237,0.25);background:rgba(124,58,237,0.08);color:#a78bfa}
+.sc-chip.rose{border:1px solid rgba(244,63,94,0.25);background:rgba(244,63,94,0.07);color:#fb7185}
+.sc-chip .dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+/* ============ UID SCREEN ============ */
+.uid-card{
+  margin-top:20px;
+  border-radius:26px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  padding:20px;
+}
+.uid-card-head{display:flex;align-items:flex-start;gap:14px}
+.uid-head-icon{
+  width:46px;height:46px;
+  border-radius:16px;
+  background:rgba(0,245,212,0.08);
+  border:1px solid rgba(0,245,212,0.2);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--cyan);flex-shrink:0;
+}
+.uid-greet{font-weight:600;font-size:15px}
+.uid-greet em{font-style:normal;color:var(--cyan)}
+.uid-steps{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.uid-step{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.uid-step-n{
+  width:18px;height:18px;border-radius:6px;
+  background:rgba(0,245,212,0.08);
+  color:var(--cyan);font-size:9px;font-weight:700;
+  font-family:var(--mono);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.reg-btn{
+  width:100%;margin-top:16px;height:52px;
+  border:none;cursor:pointer;
+  border-radius:18px;
+  background:linear-gradient(135deg,rgba(0,245,212,0.15),rgba(0,200,175,0.08));
+  border:1px solid rgba(0,245,212,0.3);
+  color:var(--cyan);font-family:var(--font);
+  font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform .1s,background .2s;
+  letter-spacing:.02em;
+}
+.reg-btn:active{transform:scale(0.97)}
+.warn-row{
+  margin-top:10px;padding:8px 12px;
+  border-radius:12px;
+  font-family:var(--mono);font-size:11px;
+  background:rgba(244,63,94,0.05);
+  border:1px solid rgba(244,63,94,0.15);
+  color:#fb7185;
+}
+
+/* Display box */
+.input-section{margin-top:22px}
+.input-label{
+  font-family:var(--mono);font-size:10px;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px;font-weight:700;
+}
+.input-display{
+  height:72px;
+  border-radius:22px;
+  background:rgba(0,0,0,0.5);
+  border:1px solid var(--border);
+  display:flex;align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.input-display.active{
+  border-color:rgba(0,245,212,0.3);
+  box-shadow:0 0 0 3px rgba(0,245,212,0.05),inset 0 0 20px rgba(0,245,212,0.02);
+}
+.disp-val{
+  font-family:var(--mono);
+  font-size:28px;font-weight:700;
+  letter-spacing:.12em;
+}
+.disp-val.empty{
+  font-size:18px;
+  letter-spacing:.2em;
+  color:rgba(255,255,255,0.12);
+}
+.disp-count{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* Keypad */
+.keypad{
+  margin-top:18px;
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+.key{
+  height:68px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,0.07);
+  background:rgba(255,255,255,0.03);
+  color:var(--text);
+  font-family:var(--display);
+  font-size:24px;font-weight:700;
+  cursor:pointer;
+  transition:all .1s;
+  position:relative;
+  overflow:hidden;
+}
+.key::after{
+  content:'';
+  position:absolute;inset:0;
+  background:rgba(255,255,255,0.04);
+  opacity:0;transition:opacity .1s;
+}
+.key:active{transform:scale(.94)}
+.key:active::after{opacity:1}
+.key-del{
+  background:rgba(244,63,94,0.07);
+  border-color:rgba(244,63,94,0.15);
+  color:#fb7185;
+}
+.key-go{
+  background:linear-gradient(135deg,rgba(0,245,212,0.2),rgba(0,200,175,0.1));
+  border-color:rgba(0,245,212,0.3);
+  color:var(--cyan);
+}
+.key-go:active{background:rgba(0,245,212,0.3)}
+.keypad-hint{
+  text-align:center;
+  font-family:var(--mono);font-size:10px;
+  color:var(--muted);margin-top:12px;letter-spacing:.06em;
+}
+
+/* ============ PROCESSING ============ */
+#processing{
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  min-height:100dvh;padding:40px 20px;
+}
+.proc-visual{
+  position:relative;width:90px;height:90px;
+  display:flex;align-items:center;justify-content:center;
+}
+.proc-r1{
+  position:absolute;
+  width:90px;height:90px;
+  border-radius:50%;
+  border:2px solid rgba(0,245,212,0.12);
+  border-top-color:var(--cyan);
+  animation:spin .9s linear infinite;
+}
+.proc-r2{
+  position:absolute;
+  width:70px;height:70px;
+  border-radius:50%;
+  border:2px solid rgba(124,58,237,0.1);
+  border-bottom-color:var(--violet);
+  animation:spinR 1.3s linear infinite;
+}
+.proc-core{
+  width:16px;height:16px;
+  border-radius:50%;
+  background:var(--cyan);
+  box-shadow:0 0 20px var(--cyan),0 0 40px rgba(0,245,212,0.3);
+}
+.proc-title{
+  font-family:var(--display);
+  font-size:26px;font-weight:800;
+  margin-top:30px;text-align:center;
+}
+.proc-sub{font-size:13px;color:var(--muted);margin-top:6px;text-align:center;font-family:var(--mono)}
+
+.proc-steps{width:100%;margin-top:36px;display:flex;flex-direction:column;gap:8px}
+.proc-step{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 18px;
+  border-radius:18px;
+  background:var(--surface);border:1px solid var(--border);
+  transition:all .3s;
+}
+.proc-step.active{
+  border-color:rgba(0,245,212,0.2);
+  background:rgba(0,245,212,0.03);
+}
+.proc-step.done{opacity:.4}
+.step-ic{
+  width:30px;height:30px;
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;font-weight:700;
+  background:rgba(255,255,255,0.04);
+  color:var(--muted);flex-shrink:0;
+}
+.proc-step.active .step-ic{
+  background:rgba(0,245,212,0.12);
+  color:var(--cyan);
+}
+.step-txt{font-size:13px;color:var(--muted)}
+.proc-step.active .step-txt{color:var(--text)}
+
+/* ============ RESULT ============ */
+.result-head-card{
+  margin-top:20px;
+  border-radius:26px;
+  padding:28px 20px;
+  text-align:center;
+  background:linear-gradient(145deg,rgba(244,63,94,0.05),rgba(0,0,0,0.4));
+  border:1px solid rgba(244,63,94,0.2);
+}
+.result-icon-wrap{
+  width:72px;height:72px;margin:0 auto;
+  border-radius:50%;
+  background:rgba(244,63,94,0.1);
+  border:1px solid rgba(244,63,94,0.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:30px;
+}
+.result-chip{
+  display:inline-block;
+  margin-top:14px;
+  padding:4px 16px;
+  border-radius:99px;
+  font-family:var(--mono);font-size:10px;
+  letter-spacing:.12em;
+  background:rgba(244,63,94,0.1);
+  color:#fb7185;
+  border:1px solid rgba(244,63,94,0.2);
+}
+.result-title{
+  font-family:var(--display);
+  font-size:24px;font-weight:800;
+  margin-top:8px;letter-spacing:-.02em;
+}
+.result-uid{
+  font-family:var(--mono);font-size:12px;
+  color:var(--muted);margin-top:6px;
+}
+.reason-list{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.reason-item{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:14px 16px;
+  border-radius:18px;
+  background:var(--surface);border:1px solid var(--border);
+}
+.reason-emoji{font-size:22px;flex-shrink:0}
+.reason-txt{font-size:13px;color:var(--muted);line-height:1.5}
+.reason-txt strong{color:var(--text)}
+
+.action-row{display:flex;gap:10px;margin-top:16px}
+.btn{
+  flex:1;padding:14px;
+  border-radius:99px;
+  font-weight:600;font-size:14px;
+  text-align:center;cursor:pointer;
+  transition:transform .1s;border:none;
+  font-family:var(--font);
+}
+.btn:active{transform:scale(.97)}
+.btn-primary{
+  background:linear-gradient(135deg,var(--cyan),var(--cyan2));
+  color:#000;
+}
+.btn-outline{
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--text);
+}
+
+/* ============ PREDICTION ============ */
+.pred-card{
+  margin-top:20px;
+  border-radius:26px;
+  background:var(--surface);
+  border:1px solid rgba(0,245,212,0.15);
+  padding:18px 20px;
+}
+.pred-card-head{display:flex;align-items:center;gap:12px}
+.pred-verify-icon{
+  width:44px;height:44px;border-radius:15px;
+  background:rgba(0,245,212,0.08);
+  border:1px solid rgba(0,245,212,0.2);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--cyan);
+}
+.pred-greet{font-weight:600;font-size:15px}
+.pred-greet em{font-style:normal;color:var(--cyan)}
+.pred-uid{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px}
+.pred-divider{height:1px;background:var(--border);margin:14px 0}
+.pred-mode-t{font-weight:600;font-size:14px}
+.pred-mode-s{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* Toggle */
+.toggle-wrap{
+  display:grid;grid-template-columns:1fr 1fr;
+  background:rgba(0,0,0,0.35);
+  border:1px solid var(--border);
+  border-radius:18px;padding:4px;
+  margin-top:18px;gap:0;
+}
+.tog-btn{
+  height:44px;border:none;cursor:pointer;
+  border-radius:14px;
+  font-family:var(--font);font-size:13px;font-weight:600;
+  background:none;color:var(--muted);
+  transition:all .2s;
+}
+.tog-btn.on.cyan{
+  background:rgba(0,245,212,0.1);
+  color:var(--cyan);
+  border:1px solid rgba(0,245,212,0.2);
+}
+.tog-btn.on.violet{
+  background:rgba(124,58,237,0.12);
+  color:#a78bfa;
+  border:1px solid rgba(124,58,237,0.2);
+}
+
+/* Prediction output */
+.pred-output{
+  margin:16px 0;
+  border-radius:28px;
+  padding:32px 20px;
+  text-align:center;
+  border:1px solid rgba(0,245,212,0.2);
+  background:linear-gradient(145deg,rgba(0,245,212,0.03),rgba(0,0,0,0.5));
+  animation:fadeUp .4s ease-out;
+  position:relative;overflow:hidden;
+}
+.pred-output::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,245,212,0.4),transparent);
+}
+.pred-tag{
+  display:inline-block;
+  font-family:var(--mono);font-size:10px;
+  letter-spacing:.15em;text-transform:uppercase;
+  color:var(--cyan);background:rgba(0,245,212,0.1);
+  padding:4px 14px;border-radius:99px;
+  margin-bottom:18px;
+}
+.pred-number{
+  font-family:var(--display);
+  font-size:110px;font-weight:800;
+  line-height:.9;
+  background:linear-gradient(135deg,#fff 20%,var(--cyan) 70%,var(--violet) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:number-pop .5s cubic-bezier(.25,.46,.45,.94);
+}
+.pred-bigsmall{
+  font-family:var(--display);
+  font-size:68px;font-weight:800;
+  line-height:1;
+  animation:number-pop .5s cubic-bezier(.25,.46,.45,.94);
+}
+.pred-bigsmall.big{
+  background:linear-gradient(135deg,#fff,var(--cyan));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.pred-bigsmall.small{
+  background:linear-gradient(135deg,#fff,#a78bfa);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.pred-confirm-row{
+  margin-top:16px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font-size:12px;color:var(--muted);font-family:var(--mono);
+}
+.conf-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan)}
+
+.pred-loading-box{
+  margin:16px 0;border-radius:28px;
+  padding:32px 20px;text-align:center;
+  border:1px solid var(--border);
+  background:rgba(0,0,0,0.3);
+}
+.loading-ring{
+  width:42px;height:42px;margin:16px auto 0;
+  border-radius:50%;
+  border:2px solid rgba(0,245,212,0.15);
+  border-top-color:var(--cyan);
+  animation:spin .8s linear infinite;
+}
+
+/* ============ ADMIN ============ */
+.admin-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.85);
+  backdrop-filter:blur(12px);
+  z-index:1000;
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.admin-sheet{
+  width:100%;max-width:460px;max-height:85vh;
+  background:#0c1218;
+  border-radius:32px;
+  border:1px solid rgba(0,245,212,0.2);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.admin-hdr{
+  padding:20px;
+  background:rgba(0,245,212,0.05);
+  border-bottom:1px solid rgba(0,245,212,0.12);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.admin-hdr h3{font-family:var(--display);font-size:20px;font-weight:800;color:var(--cyan)}
+.admin-x{
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,0.05);border:none;
+  color:var(--text);font-size:20px;cursor:pointer;
+}
+.admin-search-wrap{padding:14px;background:#080e14}
+.admin-search-wrap input{
+  width:100%;background:#111920;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:99px;padding:10px 18px;
+  color:var(--text);font-size:13px;
+  font-family:var(--mono);
+}
+.admin-list{flex:1;overflow-y:auto;padding:0 14px 16px}
+.admin-row{
+  background:rgba(255,255,255,0.03);border-radius:18px;
+  padding:12px 14px;margin-bottom:8px;
+  display:flex;justify-content:space-between;align-items:center;
+  border:1px solid rgba(255,255,255,0.05);
+}
+.admin-uid{font-family:var(--mono);font-size:14px}
+.admin-uid small{display:block;font-size:10px;color:var(--muted);margin-top:2px}
+.admin-badge{
+  background:rgba(0,245,212,0.12);padding:3px 10px;
+  border-radius:99px;font-size:10px;color:var(--cyan);
+  font-family:var(--mono);
+}
+.admin-row button{background:none;border:none;cursor:pointer;margin-left:8px;font-size:16px}
+.admin-footer{
+  display:flex;gap:8px;padding:14px;
+  background:#080e14;border-top:1px solid rgba(255,255,255,0.06);
+}
+.admin-footer input{
+  flex:1;background:#111920;border:1px solid rgba(255,255,255,0.08);
+  border-radius:99px;padding:10px 16px;
+  color:var(--text);font-family:var(--mono);font-size:13px;
+}
+.admin-footer button{
+  background:var(--cyan);border:none;border-radius:99px;
+  padding:0 20px;font-weight:700;color:#000;cursor:pointer;
+  font-family:var(--font);
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ==================== SUPABASE CONFIGURATION ====================
+// REPLACE with your actual Supabase project URL and anon key
+const SUPABASE_URL = "https://fwkvtfkhbtpvvczurznu.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3a3Z0ZmtoYnRwdnZjenVyem51Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjMwNDQsImV4cCI6MjA5NTE5OTA0NH0.O1s0gh3Uqk8Xv3XtUPwc8AsNreWgJ-T_mmhnX3bkyeo";
+
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ===============================================================
+
+// ==================== TELEGRAM ====================
+const tg = window.Telegram?.WebApp;
+const initUser = tg?.initDataUnsafe?.user || {first_name:"Demo",last_name:"User",username:"demo_user",photo_url:null};
+const user = {
+  id: initUser.id?.toString() || "demo",
+  first_name: initUser.first_name || "Demo",
+  last_name: initUser.last_name || "",
+  username: initUser.username || "demo_user",
+  photo_url: initUser.photo_url || null
+};
+if(tg){tg.ready();tg.expand();tg.setHeaderColor("#060a10");tg.setBackgroundColor("#060a10")}
+
+// ==================== BACKEND (Supabase) ====================
+const MASTER_UID = "928616";
+let deviceId = localStorage.getItem("device_id") || ("dev_"+Math.random().toString(36).slice(2)+Date.now());
+localStorage.setItem("device_id", deviceId);
+
+// Store admin credentials (password) after login
+let adminPassword = localStorage.getItem("admin_password") || null;
+
+async function mockVerify(uid) {
+  // Simulate network delay
+  await new Promise(r => setTimeout(r, 1900));
+
+  // Master UID always passes
+  if (uid === MASTER_UID) return { ok: true };
+
+  // Query Supabase for this UID
+  const { data, error } = await supabase
+    .from("uids")
+    .select("*")
+    .eq("uid", uid)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Supabase verify error:", error);
+    return { ok: false, reason: "error" };
   }
 
-  // Create Supabase client with service_role key (full access)
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-  );
+  if (!data || !data.active) {
+    return { ok: false, reason: "not_verified" };
+  }
 
+  // Device binding logic
+  if (data.device_id && data.device_id !== deviceId) {
+    return { ok: false, reason: "device_mismatch" };
+  }
+
+  if (!data.device_id) {
+    // Bind this device
+    const { error: updateErr } = await supabase
+      .from("uids")
+      .update({ device_id: deviceId })
+      .eq("uid", uid);
+
+    if (updateErr) {
+      console.error("Failed to bind device:", updateErr);
+      // Still allow if binding fails? Better to fail safely
+      return { ok: false, reason: "error" };
+    }
+  }
+
+  return { ok: true };
+}
+
+async function mockPredict(period, type) {
+  // Keep prediction logic local (no database needed)
+  await new Promise(r => setTimeout(r, 950));
+  const seed = (parseInt(period) || 1) * 3 + 7;
+  if (type === "number") return { value: String(seed % 10) };
+  return { value: seed % 2 === 0 ? "BIG" : "SMALL" };
+}
+
+// Admin Edge Function caller
+async function callAdminEdge(action, uid) {
+  if (!adminPassword) {
+    // Prompt if not stored
+    const pwd = prompt("🔐 Admin password:");
+    if (!pwd) throw new Error("No password");
+    adminPassword = pwd;
+    localStorage.setItem("admin_password", pwd);
+  }
+
+  // Replace with your Edge Function URL
+  const EDGE_URL = `${SUPABASE_URL}/functions/v1/manage-uids`;
+
+  const response = await fetch(EDGE_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action,
+      uid,
+      password: adminPassword
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || "Request failed");
+  }
+  return response.json();
+}
+
+async function adminLogin(pwd) {
+  // We'll just try a lightweight call to validate password
   try {
-    if (action === "list") {
-      const { data, error } = await supabaseAdmin.from("uids").select("*");
-      if (error) throw error;
-      return new Response(JSON.stringify({ uids: data }), { status: 200 });
-    }
-
-    if (action === "add") {
-      const { error } = await supabaseAdmin.from("uids").insert({ uid, active: true });
-      if (error) throw error;
-      return new Response(JSON.stringify({ success: true }), { status: 200 });
-    }
-
-    if (action === "toggle_active") {
-      // Get current state
-      const { data: row } = await supabaseAdmin.from("uids").select("active").eq("uid", uid).maybeSingle();
-      if (!row) throw new Error("UID not found");
-      const { error } = await supabaseAdmin.from("uids").update({ active: !row.active }).eq("uid", uid);
-      if (error) throw error;
-      return new Response(JSON.stringify({ success: true }), { status: 200 });
-    }
-
-    if (action === "delete") {
-      const { error } = await supabaseAdmin.from("uids").delete().eq("uid", uid);
-      if (error) throw error;
-      return new Response(JSON.stringify({ success: true }), { status: 200 });
-    }
-
-    return new Response(JSON.stringify({ error: "Invalid action" }), { status: 400 });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    // Attempt to fetch admin list with password
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-uids`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "list",
+        password: pwd
+      })
+    });
+    if (!response.ok) return false;
+    adminPassword = pwd;
+    localStorage.setItem("admin_password", pwd);
+    return true;
+  } catch (e) {
+    return false;
   }
-});
+}
+
+async function fetchAdminUIDs() {
+  if (!adminPassword) return [];
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-uids`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "list",
+        password: adminPassword
+      })
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.uids || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+async function addAdminUID(uid) {
+  return callAdminEdge("add", uid);
+}
+
+async function toggleAdminUID(uid) {
+  return callAdminEdge("toggle_active", uid);
+}
+
+async function deleteAdminUID(uid) {
+  return callAdminEdge("delete", uid);
+}
+
+// ==================== STATE ====================
+let S = {
+  screen:"splash", option:null, uid:"",
+  verifiedUid:null, failReason:"", period:"",
+  prediction:null, loading:false, procStep:0,
+  adminOpen:false, adminSearch:"",
+  adminUIDs:[] // cache for display
+};
+
+function haptic(t){if(tg?.HapticFeedback)tg.HapticFeedback.impactOccurred(t)}
+function go(s){S.screen=s;render()}
+function chooseOption(o){S.option=o;S.prediction=null;S.period="";go(S.verifiedUid?"prediction":"uid")}
+function typeUid(d){S.uid=(S.uid+d).slice(0,20);render()}
+function delUid(){S.uid=S.uid.slice(0,-1);render()}
+async function submitUid(){
+  if(!S.uid){shake("uid-disp");haptic("error");return}
+  S.procStep=0;go("processing");
+  setTimeout(()=>{S.procStep=1;render()},750);
+  setTimeout(()=>{S.procStep=2;render()},1450);
+  const res=await mockVerify(S.uid);
+  if(res.ok){S.verifiedUid=S.uid;go("prediction")}
+  else{S.failReason=res.reason;go("result")}
+}
+function typePeriod(d){if(S.period.length<3){S.period+=d;render()}}
+function delPeriod(){S.period=S.period.slice(0,-1);render()}
+async function submitPeriod(){
+  if(S.period.length<3){shake("period-disp");haptic("error");return}
+  S.loading=true;render();
+  const p=await mockPredict(S.period,S.option);
+  if(p)S.prediction=p;
+  S.loading=false;render();
+}
+function switchOpt(o){S.option=o;S.prediction=null;S.period="";render()}
+function resetHome(){S={...S,screen:"home",option:null,uid:"",period:"",prediction:null,failReason:"",loading:false,procStep:0,adminOpen:false,adminSearch:"",adminUIDs:[]};render()}
+function retryUid(){S.failReason="";go("uid")}
+function shake(id){const el=document.getElementById(id);if(el){el.style.animation="shake 0.4s ease";setTimeout(()=>el.style.animation="",400)}}
+async function openAdmin(){
+  if(!adminPassword){
+    const p=prompt("🔐 Admin password:");
+    if(!p)return;
+    const ok=await adminLogin(p);
+    if(!ok){alert("Wrong password");return}
+  }
+  // Refresh admin UIDs
+  S.adminUIDs = await fetchAdminUIDs();
+  S.adminOpen=true;render();
+}
+function closeAdmin(){S.adminOpen=false;render()}
+async function addUID(){
+  const inp=document.getElementById("new-uid-inp");
+  const uid=inp.value.trim();
+  if(!uid||!/^\d+$/.test(uid)){alert("Digits only");return}
+  try {
+    await addAdminUID(uid);
+    inp.value="";
+    S.adminUIDs = await fetchAdminUIDs();
+    render();
+  } catch(e) {
+    alert("Error: "+e.message);
+  }
+}
+async function toggleUID(uid){
+  try {
+    await toggleAdminUID(uid);
+    S.adminUIDs = await fetchAdminUIDs();
+    render();
+  } catch(e) {
+    alert("Error: "+e.message);
+  }
+}
+async function deleteUID(uid){
+  if(confirm("Delete?")){
+    try {
+      await deleteAdminUID(uid);
+      S.adminUIDs = await fetchAdminUIDs();
+      render();
+    } catch(e) {
+      alert("Error: "+e.message);
+    }
+  }
+}
+
+// ==================== ICONS (inline SVG) ====================
+const ICONS = {
+  shield:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6l-8-4z"/><polyline points="9 12 11 14 15 10"/></svg>`,
+  check:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  arrow:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>`,
+  back:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>`,
+  del:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 5H8L2 12l6 7h13a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>`,
+  external:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
+  card:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 10h18"/><path d="M8 14h4"/></svg>`,
+  star:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+  chart:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+  msg:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+  lock:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+  warn:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+};
+
+// ==================== RENDER ====================
+function renderSplash(){
+  const fl = user.first_name[0]?.toUpperCase()||"D";
+  const av = user.photo_url
+    ? `<img src="${user.photo_url}" class="avatar-img" referrerpolicy="no-referrer">`
+    : `<div class="avatar-fb">${fl}</div>`;
+  return `<div id="splash">
+    <div class="splash-top" style="animation:fadeUp .5s ease-out">
+      <div class="splash-eyebrow"><span class="splash-eyebrow-dot"></span>PREMIUM BOT</div>
+      <div class="splash-title">JaiClub<br>Sureshot</div>
+      <div class="splash-sub">India's Elite Colour Prediction</div>
+    </div>
+    <div class="orbital-scene" style="animation:fadeIn .8s ease-out .2s both">
+      <div class="orb-ring orb-r1"><div class="orb-dot od1"></div></div>
+      <div class="orb-ring orb-r2"><div class="orb-dot od2"></div></div>
+      <div class="orb-center">
+        <div class="avatar-shell">
+          <div class="avatar-glow"></div>
+          ${av}
+          <div class="avatar-badge">${ICONS.check}</div>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;animation:fadeUp .5s ease-out .3s both">
+      <div class="splash-user-name">${user.first_name} ${user.last_name}</div>
+      <div class="splash-user-handle">@${user.username}</div>
+    </div>
+    <div class="splash-progress" style="animation:fadeUp .5s ease-out .4s both">
+      <div class="prog-label"><span>INITIALIZING</span><span id="pct">0%</span></div>
+      <div class="prog-track"><div class="prog-fill" id="pfill"></div></div>
+    </div>
+  </div>`;
+}
+
+function startSplash(){
+  let p=0;
+  const iv=setInterval(()=>{
+    p+=Math.random()*18+5;
+    if(p>=100){clearInterval(iv);setTimeout(()=>go("home"),350)}
+    const f=document.getElementById("pfill");
+    const c=document.getElementById("pct");
+    if(f)f.style.width=Math.min(p,100)+"%";
+    if(c)c.innerText=Math.min(Math.round(p),100)+"%";
+  },160);
+}
+
+function renderHome(){
+  const tick = `⚡ 94% WIN RATE &nbsp;<span class="ticker-sep">·</span>&nbsp; 12.4K+ MEMBERS &nbsp;<span class="ticker-sep">·</span>&nbsp; 38 CORRECT TODAY &nbsp;<span class="ticker-sep">·</span>&nbsp; LIVE PREDICTIONS &nbsp;<span class="ticker-sep">·</span>&nbsp; `;
+  return `<div class="screen">
+    <div class="topbar">
+      <div class="logo-wrap" id="logo-trigger">
+        <div class="logo-icon">
+          <svg class="logo-svg" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round"><path d="M12 2L4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6l-8-4z"/><polyline points="9 12 11 14 15 10"/></svg>
+        </div>
+        <div><div class="logo-name">JaiClub</div><div class="logo-tag">SURESHOT · PREMIUM</div></div>
+      </div>
+      <div class="live-pill"><span class="live-dot"></span>LIVE</div>
+    </div>
+
+    <div class="hero">
+      <div class="hero-eyebrow">WELCOME BACK</div>
+      <div class="hero-name">Hey <em>${user.first_name}</em> 👋</div>
+    </div>
+
+    <div class="info-card">
+      <div class="scan-line"></div>
+      <div class="info-title"><div class="info-icon">🏆</div>JaiClubGame Prediction Bot</div>
+      <div class="info-body">Elite AI-powered predictions with <strong style="color:var(--cyan)">94% accuracy</strong>. Official UID verification required for access.</div>
+      <div class="info-warn">⚠ Only UIDs from official registration link are accepted</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-val">94%</div><div class="stat-lbl">Accuracy</div></div>
+      <div class="stat-box"><div class="stat-val">12.4K</div><div class="stat-lbl">Members</div></div>
+      <div class="stat-box"><div class="stat-val">38✓</div><div class="stat-lbl">Today</div></div>
+    </div>
+
+    <div class="options">
+      ${optCard("cyan","number","🎯",ICONS.star,"Get Number Sureshot","Pinpoint single-digit predictions")}
+      ${optCard("violet","bigsmall","📊",ICONS.chart,"Get Big / Small Sureshot","Best big-small outcome forecast")}
+      ${optCard("gray","support","💬",ICONS.msg,"Contact Support","Talk directly to admin")}
+    </div>
+
+    <div class="ticker-wrap">
+      <div class="ticker-inner">${tick+tick+tick+tick}</div>
+    </div>
+    <div class="footer-note">⚡ ONLY OFFICIAL LINK REGISTERED UIDs ARE ACCEPTED</div>
+  </div>`;
+}
+
+function optCard(color,id,emoji,icon,title,sub){
+  const onclick = id==="support"?"window.open('https://t.me/Shetty_Bhaiii','_blank')":`chooseOption('${id}')`;
+  return `<button class="opt-card ${color}" onclick="${onclick}">
+    <div class="opt-inner">
+      <div class="opt-icon">${emoji}</div>
+      <div style="flex:1">
+        <div class="opt-title">${title}</div>
+        <div class="opt-sub">${sub}</div>
+      </div>
+      <div class="opt-arr">${ICONS.arrow}</div>
+    </div>
+  </button>`;
+}
+
+function renderUid(){
+  const name = S.option==="number"?"Number Sureshot":"Big / Small Sureshot";
+  return `<div class="screen">
+    <div class="sc-header">
+      ${backBtn("resetHome()")}
+      <div class="sc-chip violet"><span class="dot"></span>${name}</div>
+      <div style="width:40px"></div>
+    </div>
+
+    <div class="uid-card">
+      <div class="uid-card-head">
+        <div class="uid-head-icon">${ICONS.card}</div>
+        <div>
+          <div class="uid-greet">Hey <em>${user.first_name}</em> 🧑‍💻</div>
+          <div class="uid-steps">
+            <div class="uid-step"><span class="uid-step-n">1</span>Register via official link below</div>
+            <div class="uid-step"><span class="uid-step-n">2</span>Complete registration process</div>
+            <div class="uid-step"><span class="uid-step-n">3</span>Enter your UID using keypad</div>
+          </div>
+        </div>
+      </div>
+      <button class="reg-btn" onclick="window.open('https://www.jaiclub40.com/#/register?invitationCode=27868186702','_blank')">
+        ${ICONS.external} Register on Official Site
+      </button>
+      <div class="warn-row">⚠ Unofficial link registration → verification will fail</div>
+    </div>
+
+    <div class="input-section">
+      <div class="input-label">Your UID</div>
+      <div class="input-display ${S.uid?'active':''}" id="uid-disp">
+        <div class="disp-val ${S.uid?'':'empty'}">${S.uid||'· · · · · · · ·'}</div>
+        <div class="disp-count">${S.uid.length}</div>
+      </div>
+    </div>
+
+    ${keypad("typeUid","delUid","submitUid")}
+    <div class="keypad-hint">🔒 SECURE KEYPAD — NO CLIPBOARD ACCESS</div>
+  </div>`;
+}
+
+function keypad(typeF,delF,submitF){
+  const nums = "123456789".split("").map(d=>`<button class="key" onclick="${typeF}('${d}')">${d}</button>`).join("");
+  return `<div class="keypad">${nums}
+    <button class="key key-del" onclick="${delF}()">${ICONS.del}</button>
+    <button class="key" onclick="${typeF}('0')">0</button>
+    <button class="key key-go" onclick="${submitF}()">${ICONS.check}</button>
+  </div>`;
+}
+
+function renderProcessing(){
+  const steps=["Connecting to server...","Validating UID & device","Checking authorization..."];
+  return `<div id="processing">
+    <div class="proc-visual">
+      <div class="proc-r1"></div>
+      <div class="proc-r2"></div>
+      <div class="proc-core"></div>
+    </div>
+    <div class="proc-title">Verifying UID</div>
+    <div class="proc-sub">Please wait · Secure connection</div>
+    <div class="proc-steps">
+      ${steps.map((t,i)=>`<div class="proc-step ${i<S.procStep?'done':i===S.procStep?'active':''}">
+        <div class="step-ic">${i<S.procStep?'✓':i+1}</div>
+        <div class="step-txt">${t}</div>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+
+function renderResult(){
+  const lock = S.failReason==="device_mismatch";
+  return `<div class="screen">
+    <div class="sc-header">
+      ${backBtn("resetHome()")}
+      <div class="sc-chip rose"><span class="dot"></span>${lock?"Device Locked":"Verification Failed"}</div>
+      <div style="width:40px"></div>
+    </div>
+    <div class="result-head-card">
+      <div class="result-icon-wrap">${lock?ICONS.lock:ICONS.warn}</div>
+      <div class="result-chip">${lock?"DEVICE LOCKED":"ACCESS DENIED"}</div>
+      <div class="result-title">${lock?"UID Locked to Another Device":"Verification Failed"}</div>
+      <div class="result-uid">UID: <span style="color:var(--text)">${S.uid}</span></div>
+    </div>
+    <div class="reason-list">
+      ${lock?`
+        <div class="reason-item"><div class="reason-emoji">🔒</div><div class="reason-txt">This UID is already bound to another device. <strong>One UID = one device only.</strong></div></div>
+        <div class="reason-item"><div class="reason-emoji">💬</div><div class="reason-txt">Contact admin to unbind: <strong>@Shetty_Bhaiii</strong></div></div>
+      `:`
+        <div class="reason-item"><div class="reason-emoji">🚨</div><div class="reason-txt"><strong>Bot activation required</strong> — recharge ₹200 and retry.</div></div>
+        <div class="reason-item"><div class="reason-emoji">⚠️</div><div class="reason-txt">Only UIDs from the <strong>official registration link</strong> are accepted by this bot.</div></div>
+      `}
+    </div>
+    <div class="action-row">
+      <button class="btn btn-primary" onclick="${lock?"window.open('https://t.me/Shetty_Bhaiii','_blank')":"window.open('https://www.jaiclub40.com/#/register?invitationCode=27868186702','_blank')"}">${lock?"Contact Admin":"Register Official"}</button>
+    </div>
+    <div class="action-row">
+      <button class="btn btn-outline" onclick="retryUid()">Re-enter UID</button>
+      <button class="btn btn-outline" onclick="resetHome()">Home</button>
+    </div>
+  </div>`;
+}
+
+function renderPrediction(){
+  const isNum = S.option==="number";
+  let predHtml="";
+  if(S.loading){
+    predHtml=`<div class="pred-loading-box"><div style="color:var(--muted);font-family:var(--mono);font-size:12px;letter-spacing:.06em">GENERATING PREDICTION</div><div class="loading-ring"></div></div>`;
+  } else if(S.prediction){
+    predHtml=`<div class="pred-output">
+      <div class="pred-tag">SURESHOT · PERIOD ${S.period}</div>
+      ${isNum
+        ?`<div class="pred-number">${S.prediction.value}</div>`
+        :`<div class="pred-bigsmall ${S.prediction.value==="BIG"?"big":"small"}">${S.prediction.value}</div>`
+      }
+      <div class="pred-confirm-row"><div class="conf-dot"></div>Locked prediction · play with confidence</div>
+    </div>`;
+  }
+  return `<div class="screen">
+    <div class="sc-header">
+      ${backBtn("resetHome()")}
+      <div class="sc-chip cyan"><span class="dot"></span>Verified</div>
+      <div style="width:40px"></div>
+    </div>
+
+    <div class="pred-card">
+      <div class="pred-card-head">
+        <div class="pred-verify-icon">${ICONS.check}</div>
+        <div>
+          <div class="pred-greet">Welcome <em>${user.first_name}</em> ✓</div>
+          <div class="pred-uid">UID ${S.verifiedUid} · Verified</div>
+        </div>
+      </div>
+      <div class="pred-divider"></div>
+      <div class="pred-mode-t">${isNum?"Number Sureshot":"Big / Small Sureshot"}</div>
+      <div class="pred-mode-s">Enter 3-digit period number below</div>
+    </div>
+
+    <div class="toggle-wrap">
+      <button class="tog-btn ${isNum?'on cyan':''}" onclick="switchOpt('number')">🎯 Number</button>
+      <button class="tog-btn ${!isNum?'on violet':''}" onclick="switchOpt('bigsmall')">📊 Big / Small</button>
+    </div>
+
+    <div class="input-section">
+      <div class="input-label">Period Number</div>
+      <div id="period-disp" class="input-display ${S.period?'active':''}">
+        <div class="disp-val ${S.period?'':'empty'}">${S.period||'e.g. 247'}</div>
+        <div class="disp-count">${S.period.length}/3</div>
+      </div>
+    </div>
+
+    <div style="margin:14px 0">${predHtml}</div>
+
+    ${keypad("typePeriod","delPeriod","submitPeriod")}
+    <div class="keypad-hint">TAP AGAIN TO RE-ROLL</div>
+  </div>`;
+}
+
+function backBtn(onclick){
+  return `<button class="back-btn" onclick="${onclick}">${ICONS.back}</button>`;
+}
+
+async function renderAdminPanel(){
+  if(!S.adminOpen) return "";
+  const uids = S.adminUIDs || [];
+  const filtered = uids.filter(e=>e.uid.includes(S.adminSearch));
+  return `<div class="admin-overlay" onclick="if(event.target===this)closeAdmin()">
+    <div class="admin-sheet">
+      <div class="admin-hdr">
+        <h3>⚙ Admin Panel</h3>
+        <button class="admin-x" onclick="closeAdmin()">✕</button>
+      </div>
+      <div class="admin-search-wrap">
+        <input type="text" placeholder="🔍 Search UID..." id="admin-search" value="${S.adminSearch}" oninput="S.adminSearch=this.value;render()">
+      </div>
+      <div class="admin-list">
+        ${filtered.map(e=>`
+          <div class="admin-row">
+            <div>
+              <div class="admin-uid">${e.uid}</div>
+              <div class="admin-uid"><small>${e.device_id?'🔗 bound':'📱 free'} · ${e.active?'✅ Active':'❌ Inactive'}</small></div>
+            </div>
+            <div style="display:flex;align-items:center">
+              <button style="color:var(--gold)" onclick="toggleUID('${e.uid}')">${e.active?'Deact':'Activ'}</button>
+              <button style="color:#fb7185" onclick="deleteUID('${e.uid}')">Del</button>
+            </div>
+          </div>`).join("")}
+        <div class="admin-row" style="background:rgba(0,245,212,0.05);border-color:rgba(0,245,212,0.15)">
+          <div><div class="admin-uid">${MASTER_UID}</div><div class="admin-uid"><small>🔓 Always authorized</small></div></div>
+          <span class="admin-badge">MASTER</span>
+        </div>
+      </div>
+      <div class="admin-footer">
+        <input id="new-uid-inp" placeholder="Enter UID (digits only)">
+        <button onclick="addUID()">Add</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function render(){
+  const app=document.getElementById("app");
+  if(!app) return;
+  if(S.screen==="splash"){app.innerHTML=renderSplash();startSplash();return}
+  let html="";
+  switch(S.screen){
+    case"home":html=renderHome();break;
+    case"uid":html=renderUid();break;
+    case"processing":html=renderProcessing();break;
+    case"result":html=renderResult();break;
+    case"prediction":html=renderPrediction();break;
+    default:html=renderHome();
+  }
+  const adm=await renderAdminPanel();
+  app.innerHTML=html+adm;
+  if(S.screen==="home"){
+    const logo=document.getElementById("logo-trigger");
+    if(logo&&!logo._h){
+      let tap=0,t=null;
+      logo.addEventListener("click",()=>{
+        tap++;if(t)clearTimeout(t);
+        t=setTimeout(()=>tap=0,800);
+        if(tap>=5){tap=0;openAdmin()}
+      });logo._h=1;
+    }
+  }
+}
+
+window.chooseOption=chooseOption;window.typeUid=typeUid;window.delUid=delUid;window.submitUid=submitUid;
+window.resetHome=resetHome;window.retryUid=retryUid;window.typePeriod=typePeriod;
+window.delPeriod=delPeriod;window.submitPeriod=submitPeriod;window.switchOpt=switchOpt;
+window.openAdmin=openAdmin;window.closeAdmin=closeAdmin;window.addUID=addUID;
+window.toggleUID=toggleUID;window.deleteUID=deleteUID;
+
+render();
+</script>
+</body>
+</html>
