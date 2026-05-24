@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>JaiClub Sureshot — Elite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --g:#00ffaa;--g2:#00cc88;--g3:#00ff88;
+  --gold:#f5c542;--gold2:#e8a800;
+  --red:#ff4466;
+  --bg:#050709;
+  --s1:rgba(13,20,30,0.8);--s2:rgba(255,255,255,0.035);
+  --b1:rgba(255,255,255,0.07);--b2:rgba(0,255,170,0.18);
+  --txt:#eef2f8;--mute:#7a8899;--mute2:#5a6677;
+  --font-display:'Syne',sans-serif;
+  --font-body:'DM Sans',sans-serif;
+  --font-mono:'Space Mono',monospace;
+  --r:24px;--r2:18px;--r3:14px
+}
+html,body{height:100%;overflow:hidden}
+body{
+  background:#050709;
+  font-family:var(--font-body);
+  color:var(--txt);
+}
+
+/* ── mesh bg ── */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 10%,rgba(0,255,170,0.07) 0,transparent 70%),
+    radial-gradient(ellipse 50% 40% at 80% 85%,rgba(245,197,66,0.06) 0,transparent 65%),
+    radial-gradient(ellipse 70% 60% at 50% 50%,rgba(0,10,20,0.9) 0,transparent 100%);
+}
+/* noise */
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0.022;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+#app{
+  position:relative;z-index:2;
+  max-width:480px;margin:0 auto;
+  height:100dvh;overflow:hidden;
+}
+
+.screen{
+  position:absolute;inset:0;
+  overflow-y:auto;overflow-x:hidden;
+  padding:0 20px 40px;
+  scrollbar-width:none;
+}
+.screen::-webkit-scrollbar{display:none}
+
+/* ── keyframes ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spinRev{to{transform:rotate(-360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes glowBeat{0%,100%{box-shadow:0 0 0 0 rgba(0,255,170,0)}50%{box-shadow:0 0 30px 4px rgba(0,255,170,0.28)}}
+@keyframes numberIn{0%{opacity:0;transform:scale(.6) translateY(10px)}60%{transform:scale(1.08) translateY(-3px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(9px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+@keyframes scanY{0%{top:-12%}100%{top:112%}}
+@keyframes orbitDot{to{transform:rotate(360deg) translateX(68px) rotate(-360deg)}}
+@keyframes orbitDot2{to{transform:rotate(-360deg) translateX(82px) rotate(360deg)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes pingRing{0%{box-shadow:0 0 0 0 rgba(0,255,170,.5)}80%{box-shadow:0 0 0 12px rgba(0,255,170,0)}100%{box-shadow:0 0 0 0 rgba(0,255,170,0)}}
+@keyframes progressFill{from{width:0}to{width:var(--pw)}}
+@keyframes typeChar{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+@keyframes gradPan{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+.fu{animation:fadeUp .45s cubic-bezier(.18,.89,.4,1.05) both}
+.fu1{animation-delay:.06s}.fu2{animation-delay:.12s}.fu3{animation-delay:.18s}.fu4{animation-delay:.26s}.fu5{animation-delay:.36s}
+
+/* ── Splash ── */
+#splash{
+  position:relative;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:space-between;
+  min-height:100dvh;padding:64px 28px 52px;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% -5%,rgba(0,255,170,.16) 0,transparent 65%),
+    radial-gradient(ellipse 60% 45% at 50% 108%,rgba(245,197,66,.1) 0,transparent 60%),
+    #050709;
+}
+.splash-badge{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.3em;
+  color:var(--g);border:1px solid rgba(0,255,170,.3);
+  background:rgba(0,255,170,.06);padding:5px 18px;border-radius:99px;
+  animation:glowBeat 2.5s ease-in-out infinite;
+}
+.splash-title{
+  font-family:var(--font-display);font-size:42px;font-weight:800;
+  background:linear-gradient(135deg,#fff 30%,var(--g) 80%,var(--gold) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  margin-top:14px;line-height:1.1;
+  background-size:200% 200%;animation:gradPan 4s ease infinite;
+}
+.splash-sub{font-size:13px;color:var(--mute);margin-top:6px;letter-spacing:.02em}
+
+/* orbital */
+.orbital{position:relative;width:200px;height:200px;margin:0 auto}
+.orb-ring{
+  position:absolute;inset:0;border-radius:50%;
+  border:1px solid rgba(0,255,170,.12);
+}
+.orb-ring2{
+  position:absolute;top:10px;left:10px;right:10px;bottom:10px;border-radius:50%;
+  border:1px dashed rgba(245,197,66,.1);
+}
+.orb-dot{
+  position:absolute;top:50%;left:50%;
+  width:8px;height:8px;border-radius:50%;
+  margin:-4px 0 0 -4px;
+  background:var(--g);box-shadow:0 0 10px var(--g);
+  animation:orbitDot 5s linear infinite;
+}
+.orb-dot2{
+  position:absolute;top:50%;left:50%;
+  width:6px;height:6px;border-radius:50%;
+  margin:-3px 0 0 -3px;
+  background:var(--gold);box-shadow:0 0 8px var(--gold);
+  animation:orbitDot2 7s linear infinite;
+}
+.orb-center{
+  position:absolute;inset:24px;border-radius:50%;
+  background:linear-gradient(145deg,#0d1a14,#050a08);
+  border:1.5px solid rgba(0,255,170,.3);
+  display:flex;align-items:center;justify-content:center;
+  animation:glowBeat 3s ease-in-out infinite;
+  overflow:hidden;
+}
+.orb-avatar{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.orb-avatar-fb{
+  width:100%;height:100%;border-radius:50%;
+  background:linear-gradient(135deg,#0d1a12,#060e09);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-size:38px;font-weight:800;color:var(--g);
+}
+.orb-tick{
+  position:absolute;bottom:16px;right:16px;
+  width:26px;height:26px;border-radius:50%;
+  background:var(--g);color:#000;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid #050709;z-index:3;
+  font-size:11px;font-weight:800;
+}
+.splash-user-name{
+  font-family:var(--font-display);font-size:26px;font-weight:800;text-align:center;
+}
+.splash-user-handle{font-size:13px;color:var(--mute);margin-top:3px}
+.splash-launch{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+  border-radius:99px;padding:9px 22px;font-size:13px;
+}
+.live-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--g);
+  animation:pingRing 1.5s infinite;display:inline-block;flex-shrink:0;
+}
+.splash-prog{width:100%;max-width:270px}
+.prog-track{height:3px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;width:0;background:linear-gradient(90deg,var(--g),var(--gold));transition:width .08s linear}
+.prog-label{text-align:center;margin-top:8px;font-family:var(--font-mono);font-size:10px;color:var(--mute);letter-spacing:.1em}
+
+/* ── Shared UI ── */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:22px 0 0}
+.logo-wrap{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.logo-gem{
+  width:42px;height:42px;border-radius:15px;
+  background:rgba(0,255,170,.06);border:1px solid rgba(0,255,170,.18);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .15s;
+}
+.logo-wrap:active .logo-gem{transform:scale(.93)}
+.logo-name{font-family:var(--font-display);font-size:15px;font-weight:800;letter-spacing:.01em}
+.logo-sub{font-size:10px;color:var(--mute);letter-spacing:.04em;margin-top:1px}
+.topbar-live{
+  display:flex;align-items:center;gap:7px;
+  background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.07);
+  border-radius:99px;padding:7px 14px;
+  font-family:var(--font-mono);font-size:11px;color:var(--mute);
+}
+.back-btn{
+  width:42px;height:42px;border-radius:15px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:all .12s;color:var(--txt);
+}
+.back-btn:active{transform:scale(.92);background:rgba(255,255,255,.09)}
+.screen-hdr{display:flex;align-items:center;justify-content:space-between;padding:22px 0 0}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:99px;
+  font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.08em;
+  border:1px solid;
+}
+.chip-g{border-color:rgba(0,255,170,.3);background:rgba(0,255,170,.07);color:var(--g)}
+.chip-gold{border-color:rgba(245,197,66,.3);background:rgba(245,197,66,.07);color:var(--gold)}
+.chip-red{border-color:rgba(255,68,102,.3);background:rgba(255,68,102,.07);color:var(--red)}
+.chip-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+.glass{
+  background:rgba(10,18,26,.75);
+  backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:var(--r);
+}
+
+/* ── Home ── */
+.hero{padding:26px 0 4px}
+.hero-hey{font-size:13px;color:var(--mute);letter-spacing:.04em}
+.hero-name{
+  font-family:var(--font-display);font-size:36px;font-weight:800;
+  letter-spacing:-.02em;margin-top:4px;
+}
+.hero-name em{font-style:normal;color:var(--g)}
+
+.info-banner{
+  margin-top:18px;border-radius:22px;
+  background:rgba(0,255,170,.02);
+  border:1px solid rgba(0,255,170,.1);
+  padding:18px;position:relative;overflow:hidden;
+}
+.ib-scan{
+  position:absolute;left:0;right:0;height:1.5px;
+  background:linear-gradient(90deg,transparent 0,rgba(0,255,170,.18) 50%,transparent 100%);
+  animation:scanY 5s linear infinite;pointer-events:none;
+}
+.ib-title{
+  font-family:var(--font-display);font-size:14px;font-weight:700;
+  display:flex;align-items:center;gap:8px;
+}
+.ib-title svg{color:var(--g)}
+.ib-desc{font-size:12.5px;color:var(--mute);margin-top:5px;line-height:1.6}
+.ib-warn{
+  margin-top:10px;padding:8px 12px;
+  background:rgba(245,197,66,.06);border:1px solid rgba(245,197,66,.14);
+  border-radius:12px;font-size:11px;color:var(--gold);
+  display:flex;align-items:center;gap:7px;
+}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+.stat{
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+  border-radius:18px;padding:14px 8px;text-align:center;
+}
+.stat-v{
+  font-family:var(--font-display);font-size:23px;font-weight:800;color:var(--g);
+  animation:gradPan 5s ease infinite;
+  background:linear-gradient(90deg,var(--g),var(--gold),var(--g));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  background-size:200% auto;
+}
+.stat-l{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute2);margin-top:4px}
+
+.opts{margin-top:26px;display:flex;flex-direction:column;gap:11px}
+.opt{
+  width:100%;border:none;background:none;padding:0;cursor:pointer;text-align:left;
+}
+.opt-body{
+  display:flex;align-items:center;gap:16px;
+  padding:17px 18px;border-radius:22px;
+  border:1px solid rgba(255,255,255,.07);
+  background:rgba(10,18,26,.6);
+  transition:border-color .18s,background .18s,transform .1s;
+  position:relative;overflow:hidden;
+}
+.opt-body::before{
+  content:'';position:absolute;inset:0;opacity:0;
+  transition:opacity .2s;pointer-events:none;
+}
+.opt.green .opt-body{border-color:rgba(0,255,170,.15);background:rgba(0,255,170,.03)}
+.opt.green .opt-body::before{background:linear-gradient(135deg,rgba(0,255,170,.06) 0,transparent 70%)}
+.opt.gold .opt-body{border-color:rgba(245,197,66,.15);background:rgba(245,197,66,.03)}
+.opt.gold .opt-body::before{background:linear-gradient(135deg,rgba(245,197,66,.06) 0,transparent 70%)}
+.opt:active .opt-body{transform:scale(.975)}
+.opt:active .opt-body::before{opacity:1}
+.opt-ico{
+  width:52px;height:52px;border-radius:18px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.opt.green .opt-ico{background:rgba(0,255,170,.1);color:var(--g)}
+.opt.gold .opt-ico{background:rgba(245,197,66,.1);color:var(--gold)}
+.opt.gray .opt-ico{background:rgba(255,255,255,.06);color:var(--mute)}
+.opt-lbl{
+  font-family:var(--font-display);font-size:15px;font-weight:700;color:#fff;
+}
+.opt-slbl{font-size:12px;color:var(--mute);margin-top:3px}
+.opt-arr{margin-left:auto;color:var(--mute);flex-shrink:0}
+.opt.green .opt-arr{color:var(--g)}
+.opt.gold .opt-arr{color:var(--gold)}
+
+.footer-note{
+  margin-top:24px;padding:12px 16px;
+  background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);
+  border-radius:18px;font-size:11px;color:var(--mute2);text-align:center;
+  font-family:var(--font-mono);letter-spacing:.04em;
+}
+
+/* ── UID screen ── */
+.reg-card{
+  margin-top:20px;border-radius:26px;
+  background:rgba(10,18,26,.7);border:1px solid rgba(255,255,255,.07);
+  padding:20px;
+}
+.reg-card-hdr{display:flex;align-items:flex-start;gap:14px}
+.reg-card-icon{
+  width:48px;height:48px;border-radius:16px;
+  background:rgba(0,255,170,.08);border:1px solid rgba(0,255,170,.18);
+  display:flex;align-items:center;justify-content:center;color:var(--g);flex-shrink:0;
+}
+.reg-greet{font-family:var(--font-display);font-size:15px;font-weight:700}
+.reg-greet span{color:var(--g)}
+.reg-steps{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.reg-step{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mute)}
+.reg-step-n{
+  width:19px;height:19px;border-radius:8px;
+  background:rgba(0,255,170,.1);color:var(--g);
+  font-family:var(--font-mono);font-size:9px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.reg-link-btn{
+  width:100%;margin-top:16px;height:52px;
+  border:none;cursor:pointer;border-radius:18px;
+  background:linear-gradient(135deg,var(--g2) 0,#009966 100%);
+  color:#000;font-family:var(--font-display);font-size:14px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  box-shadow:0 8px 28px rgba(0,204,136,.22);
+  transition:transform .1s,box-shadow .15s;
+}
+.reg-link-btn:active{transform:scale(.97);box-shadow:0 4px 14px rgba(0,204,136,.15)}
+.warn-strip{
+  margin-top:12px;padding:10px 14px;
+  border-radius:14px;font-size:11.5px;
+  background:rgba(255,68,102,.05);border:1px solid rgba(255,68,102,.14);
+  color:var(--red);display:flex;align-items:center;gap:8px;
+}
+
+/* ── Input display & keypad ── */
+.inp-section{margin-top:22px}
+.inp-label{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--mute2);margin-bottom:10px;font-weight:700;
+}
+.inp-box{
+  height:74px;border-radius:22px;
+  background:rgba(0,0,0,.45);
+  border:1.5px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;
+  transition:border-color .2s,box-shadow .2s;
+  position:relative;overflow:hidden;
+}
+.inp-box::after{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:transparent;border-radius:3px 0 0 3px;
+  transition:background .2s;
+}
+.inp-box.has-v{border-color:rgba(0,255,170,.22);box-shadow:0 0 0 3px rgba(0,255,170,.06)}
+.inp-box.has-v::after{background:var(--g)}
+.inp-val{
+  font-family:var(--font-mono);font-size:30px;font-weight:700;letter-spacing:.12em;
+}
+.inp-val.empty{color:rgba(255,255,255,.15);font-size:18px;letter-spacing:.25em}
+.inp-cnt{font-family:var(--font-mono);font-size:11px;color:var(--mute2)}
+
+.keypad{margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.key{
+  height:68px;border-radius:20px;border:none;cursor:pointer;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+  color:var(--txt);
+  font-family:var(--font-display);font-size:26px;font-weight:800;
+  transition:all .08s;position:relative;overflow:hidden;
+}
+.key::after{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  background:rgba(255,255,255,0);transition:background .08s;pointer-events:none;
+}
+.key:active{transform:scale(.93);background:rgba(0,255,170,.12);border-color:rgba(0,255,170,.25)}
+.key:active::after{background:rgba(255,255,255,.04)}
+.key-del{background:rgba(255,68,102,.07);color:#ff8899;border-color:rgba(255,68,102,.13)}
+.key-del:active{background:rgba(255,68,102,.18)}
+.key-ok{
+  background:linear-gradient(135deg,var(--g2) 0,#009966 100%);
+  border-color:transparent;color:#000;
+  box-shadow:0 6px 20px rgba(0,204,136,.25);
+}
+.key-ok:active{transform:scale(.93);box-shadow:0 3px 10px rgba(0,204,136,.15)}
+.keypad-hint{
+  text-align:center;font-family:var(--font-mono);font-size:10px;
+  color:var(--mute2);margin-top:12px;letter-spacing:.08em;
+}
+
+/* ── Processing ── */
+#processing{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:100dvh;padding:40px 20px;
+}
+.proc-rings{position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center}
+.pr1{
+  position:absolute;width:88px;height:88px;border-radius:50%;
+  border:2.5px solid rgba(0,255,170,.1);border-top-color:var(--g);
+  animation:spin .85s linear infinite;
+}
+.pr2{
+  position:absolute;width:68px;height:68px;border-radius:50%;
+  border:2px solid rgba(245,197,66,.08);border-bottom-color:var(--gold);
+  animation:spinRev 1.2s linear infinite;
+}
+.pr3{
+  position:absolute;width:48px;height:48px;border-radius:50%;
+  border:1.5px solid rgba(0,255,170,.06);border-left-color:rgba(0,255,170,.3);
+  animation:spin 2s linear infinite;
+}
+.pr-core{
+  width:18px;height:18px;border-radius:50%;
+  background:var(--g);box-shadow:0 0 20px var(--g),0 0 40px rgba(0,255,170,.4);
+  animation:pulse .9s ease-in-out infinite;
+}
+.proc-title{font-family:var(--font-display);font-size:26px;font-weight:800;margin-top:28px;text-align:center}
+.proc-sub{font-size:14px;color:var(--mute);margin-top:6px;text-align:center;font-family:var(--font-mono);letter-spacing:.05em}
+.proc-steps{width:100%;margin-top:36px;display:flex;flex-direction:column;gap:9px}
+.proc-step{
+  display:flex;align-items:center;gap:14px;
+  padding:15px 18px;border-radius:20px;
+  background:rgba(10,18,26,.6);border:1px solid rgba(255,255,255,.06);
+  transition:all .3s;
+}
+.proc-step.act{border-color:rgba(0,255,170,.22);background:rgba(0,255,170,.04)}
+.proc-step.done{opacity:.45}
+.ps-ico{
+  width:32px;height:32px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.05);color:var(--mute);
+  font-family:var(--font-mono);font-size:11px;font-weight:700;flex-shrink:0;
+}
+.proc-step.act .ps-ico{background:rgba(0,255,170,.14);color:var(--g)}
+.ps-txt{font-size:13px;color:var(--mute)}
+.proc-step.act .ps-txt{color:var(--txt)}
+
+/* ── Result ── */
+.result-hero{
+  text-align:center;
+  background:rgba(10,15,20,.8);border:1px solid rgba(255,68,102,.2);
+  border-radius:28px;padding:32px 24px;
+  animation:fadeUp .4s ease-out;
+}
+.result-ico{
+  width:78px;height:78px;border-radius:50%;margin:0 auto;
+  background:rgba(255,68,102,.12);
+  display:flex;align-items:center;justify-content:center;
+  border:1.5px solid rgba(255,68,102,.2);
+}
+.result-tag{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;
+  color:var(--red);background:rgba(255,68,102,.1);
+  display:inline-block;padding:4px 18px;border-radius:99px;margin-top:14px;
+}
+.result-ttl{font-family:var(--font-display);font-size:24px;font-weight:800;margin-top:8px}
+.result-uid{font-family:var(--font-mono);font-size:12px;color:var(--mute);margin-top:6px}
+.reasons{display:flex;flex-direction:column;gap:11px;margin-top:18px}
+.reason-card{
+  display:flex;align-items:flex-start;gap:14px;
+  padding:16px 18px;border-radius:20px;
+  background:rgba(10,18,26,.6);border:1px solid rgba(255,255,255,.07);
+}
+.rc-ico{font-size:24px;flex-shrink:0;line-height:1.3}
+.rc-txt{font-size:13px;color:var(--mute);line-height:1.6}
+.rc-txt strong{color:var(--txt);font-family:var(--font-display)}
+.action-row{display:flex;gap:11px;margin-top:18px}
+.btn{
+  flex:1;padding:14px 8px;border-radius:28px;
+  font-family:var(--font-display);font-size:13px;font-weight:700;
+  text-align:center;cursor:pointer;border:none;
+  transition:transform .1s,opacity .12s;
+}
+.btn:active{transform:scale(.96);opacity:.88}
+.btn-g{background:linear-gradient(135deg,var(--g2),#009966);color:#000;box-shadow:0 6px 20px rgba(0,204,136,.2)}
+.btn-s{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:var(--txt)}
+
+/* ── Prediction ── */
+.pred-card{
+  margin-top:18px;border-radius:26px;
+  background:rgba(10,18,26,.7);border:1px solid rgba(0,255,170,.14);
+  padding:20px;
+}
+.pred-card-inner{display:flex;align-items:center;gap:12px}
+.pred-card-ico{
+  width:46px;height:46px;border-radius:16px;
+  background:rgba(0,255,170,.08);border:1px solid rgba(0,255,170,.18);
+  display:flex;align-items:center;justify-content:center;color:var(--g);flex-shrink:0;
+}
+.pred-name{font-family:var(--font-display);font-size:15px;font-weight:700}
+.pred-name span{color:var(--g)}
+.pred-uid{font-family:var(--font-mono);font-size:11px;color:var(--mute);margin-top:3px}
+.pred-card-divider{border-top:1px solid rgba(255,255,255,.07);margin-top:14px;padding-top:14px}
+.pred-mode-lbl{font-family:var(--font-display);font-size:14px;font-weight:700}
+.pred-mode-sub{font-size:12px;color:var(--mute);margin-top:2px}
+
+.toggle-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:0;
+  margin-top:16px;
+  background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.07);
+  border-radius:18px;padding:4px;
+}
+.tog-btn{
+  height:44px;border:none;cursor:pointer;border-radius:14px;
+  font-family:var(--font-display);font-size:12px;font-weight:700;
+  background:none;color:var(--mute);transition:all .18s;
+}
+.tog-btn.act-g{background:rgba(0,255,170,.1);color:var(--g);border:1px solid rgba(0,255,170,.18)}
+.tog-btn.act-gold{background:rgba(245,197,66,.1);color:var(--gold);border:1px solid rgba(245,197,66,.18)}
+
+/* prediction result display */
+.pred-result{
+  border-radius:28px;padding:36px 20px;text-align:center;
+  background:rgba(0,0,0,.5);border:1px solid rgba(0,255,170,.18);
+  animation:fadeUp .4s ease-out;
+  position:relative;overflow:hidden;
+}
+.pred-result::before{
+  content:'';position:absolute;left:0;right:0;height:1.5px;
+  background:linear-gradient(90deg,transparent,rgba(0,255,170,.2),transparent);
+  animation:scanY 4s linear infinite;pointer-events:none;
+}
+.pred-rlabel{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.2em;
+  color:var(--g);background:rgba(0,255,170,.08);
+  display:inline-block;padding:4px 16px;border-radius:99px;margin-bottom:18px;
+  text-transform:uppercase;
+}
+.pred-number{
+  font-family:var(--font-display);font-size:104px;font-weight:800;line-height:1;
+  background:linear-gradient(135deg,#fff 20%,var(--g) 70%,var(--gold) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:numberIn .5s cubic-bezier(.18,.89,.4,1.1) both;
+  background-size:200% auto;animation:numberIn .5s ease-out,gradPan 3s ease infinite .5s;
+}
+.pred-bigsmall{
+  font-family:var(--font-display);font-size:68px;font-weight:800;line-height:1;
+  animation:numberIn .5s cubic-bezier(.18,.89,.4,1.1) both;
+}
+.pred-bigsmall.big{
+  background:linear-gradient(135deg,#fff 20%,var(--g) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.pred-bigsmall.small{
+  background:linear-gradient(135deg,#fff 20%,var(--gold) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.pred-confirm{
+  margin-top:16px;font-size:12px;color:var(--mute);
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  font-family:var(--font-mono);letter-spacing:.04em;
+}
+.pred-confirm::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--g)}
+
+.pred-loading-box{
+  border-radius:28px;padding:32px 20px;text-align:center;
+  background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.07);
+}
+.pred-loading-ring{
+  width:44px;height:44px;margin:18px auto 0;border-radius:50%;
+  border:2.5px solid rgba(0,255,170,.18);border-top-color:var(--g);
+  animation:spin .75s linear infinite;
+}
+.pred-loading-txt{font-family:var(--font-mono);font-size:12px;color:var(--mute);letter-spacing:.06em}
+
+/* ── Admin ── */
+.admin-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.92);
+  backdrop-filter:blur(14px);z-index:1000;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.admin-panel{
+  width:100%;max-width:460px;max-height:85dvh;
+  background:#0c1319;border-radius:36px;
+  border:1px solid rgba(0,255,170,.25);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.admin-hdr{
+  padding:20px 22px;background:rgba(0,255,170,.06);
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid rgba(0,255,170,.14);
+}
+.admin-hdr h3{font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--g)}
+.admin-close{
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.05);border:none;color:var(--txt);font-size:22px;cursor:pointer;
+}
+.admin-search{padding:14px 16px;background:rgba(0,0,0,.3)}
+.admin-search input{
+  width:100%;background:#141e28;border:1px solid #1e2e3e;
+  border-radius:28px;padding:11px 18px;color:var(--txt);
+  font-family:var(--font-body);font-size:14px;
+}
+.admin-list{flex:1;overflow-y:auto;padding:0 16px 16px}
+.admin-item{
+  background:rgba(255,255,255,.03);border-radius:22px;
+  padding:14px;margin-bottom:9px;
+  display:flex;justify-content:space-between;align-items:center;
+  border:1px solid rgba(255,255,255,.05);
+}
+.ai-uid{font-family:var(--font-mono);font-size:14px;font-weight:700}
+.ai-meta{font-family:var(--font-mono);font-size:10px;color:var(--mute);margin-top:3px}
+.admin-badge{
+  background:rgba(0,255,170,.12);padding:3px 10px;border-radius:99px;
+  font-family:var(--font-mono);font-size:9px;color:var(--g);font-weight:700;
+}
+.ai-actions button{
+  background:none;border:none;cursor:pointer;
+  margin-left:10px;font-size:12px;font-weight:600;
+  font-family:var(--font-mono);
+}
+.admin-add{
+  display:flex;gap:9px;padding:14px 16px;
+  background:rgba(0,0,0,.25);border-top:1px solid rgba(255,255,255,.07);
+}
+.admin-add input{
+  flex:1;background:#141e28;border:1px solid #1e2e3e;
+  border-radius:28px;padding:11px 16px;color:var(--txt);
+  font-family:var(--font-mono);font-size:13px;
+}
+.admin-add button{
+  background:var(--g);border:none;border-radius:28px;
+  padding:0 22px;font-family:var(--font-display);font-weight:800;
+  color:#000;cursor:pointer;font-size:13px;
+}
+
+/* SVG icons inline */
+svg{display:block;flex-shrink:0}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ── Telegram / user ──
+const tg=window.Telegram?.WebApp;
+const iu=tg?.initDataUnsafe?.user||{first_name:"Demo",last_name:"User",username:"demo_user",photo_url:null};
+const user={id:iu.id?.toString()||"demo",first_name:iu.first_name||"Demo",last_name:iu.last_name||"",username:iu.username||"demo_user",photo_url:iu.photo_url||null};
+if(tg){tg.ready();tg.expand();tg.setHeaderColor("#050709");tg.setBackgroundColor("#050709")}
+
+// ── Mock backend ──
+let mockUIDs=JSON.parse(localStorage.getItem("mock_uids")||'[{"uid":"123456789012","active":true,"deviceId":null},{"uid":"987654321098","active":false,"deviceId":null}]');
+function saveMockUIDs(){localStorage.setItem("mock_uids",JSON.stringify(mockUIDs))}
+let adminToken=localStorage.getItem("admin_token");
+const MASTER="928616";
+let deviceId=localStorage.getItem("device_id")||("dev_"+Math.random().toString(36).slice(2)+Date.now());
+localStorage.setItem("device_id",deviceId);
+
+async function mockVerify(uid){
+  await wait(1800);
+  if(uid===MASTER)return{ok:true};
+  const e=mockUIDs.find(e=>e.uid===uid);
+  if(!e||!e.active)return{ok:false,reason:"not_verified"};
+  if(e.deviceId&&e.deviceId!==deviceId)return{ok:false,reason:"device_mismatch"};
+  if(!e.deviceId){e.deviceId=deviceId;saveMockUIDs()}
+  return{ok:true};
+}
+async function mockPredict(period,type){
+  await wait(950);
+  const s=(parseInt(period)||1)*3+7;
+  if(type==="number")return{value:String(s%10)};
+  return{value:s%2===0?"BIG":"SMALL"};
+}
+async function adminLogin(pw){if(pw==="admin123"){localStorage.setItem("admin_token","mock_token");adminToken="mock_token";return true}return false}
+async function addAdminUID(uid){if(!mockUIDs.some(e=>e.uid===uid)){mockUIDs.push({uid,active:true,deviceId:null});saveMockUIDs()}}
+async function toggleAdminUID(uid){const e=mockUIDs.find(e=>e.uid===uid);if(e){e.active=!e.active;saveMockUIDs()}}
+async function deleteAdminUID(uid){mockUIDs=mockUIDs.filter(e=>e.uid!==uid);saveMockUIDs()}
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+
+// ── State ──
+let S={screen:"splash",option:null,uid:"",verifiedUid:null,failReason:"",period:"",prediction:null,loading:false,procStep:0,adminOpen:false,adminSearch:""};
+function haptic(t){if(tg?.HapticFeedback)tg.HapticFeedback.impactOccurred(t)}
+function go(s){S.screen=s;render()}
+
+function chooseOption(opt){S.option=opt;S.prediction=null;S.period="";go(S.verifiedUid?"prediction":"uid")}
+function typeUid(d){if(S.uid.length<20){S.uid+=d;render()}}
+function delUid(){S.uid=S.uid.slice(0,-1);render()}
+async function submitUid(){
+  if(!S.uid){shake("uid-display");haptic("error");return}
+  S.procStep=0;go("processing");
+  setTimeout(()=>{S.procStep=1;render()},700);
+  setTimeout(()=>{S.procStep=2;render()},1400);
+  const res=await mockVerify(S.uid);
+  if(res.ok){S.verifiedUid=S.uid;go("prediction")}
+  else{S.failReason=res.reason;go("result")}
+}
+function typePeriod(d){if(S.period.length<3){S.period+=d;render()}}
+function delPeriod(){S.period=S.period.slice(0,-1);render()}
+async function submitPeriod(){
+  if(S.period.length<3){shake("period-display");haptic("error");return}
+  S.loading=true;render();
+  const p=await mockPredict(S.period,S.option);
+  if(p)S.prediction=p;
+  S.loading=false;render();
+}
+function switchOpt(opt){S.option=opt;S.prediction=null;S.period="";render()}
+function resetHome(){S={...S,screen:"home",option:null,uid:"",period:"",prediction:null,failReason:"",loading:false,procStep:0,adminOpen:false,adminSearch:""};render()}
+function retryUid(){S.failReason="";go("uid")}
+function shake(id){const el=document.getElementById(id);if(el){el.style.animation="shake .4s ease-in-out";setTimeout(()=>el.style.animation="",420)}}
+
+async function openAdmin(){
+  if(!adminToken){const p=prompt("🔐 Admin password:");if(!p)return;const ok=await adminLogin(p);if(!ok){alert("Wrong password");return}}
+  S.adminOpen=true;render();
+}
+function closeAdmin(){S.adminOpen=false;render()}
+async function addUID(){const inp=document.getElementById("new-uid-input");const uid=inp.value.trim();if(!uid||!/^\d+$/.test(uid)){alert("Invalid UID");return}await addAdminUID(uid);inp.value="";render()}
+async function toggleUID(uid){await toggleAdminUID(uid);render()}
+async function deleteUID(uid){if(confirm("Delete UID?")){{await deleteAdminUID(uid);render()}}}
+
+// ── SVG icons ──
+const ico={
+  shield:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6l-8-4z"/><path d="M9 12l2 2 4-4"/></svg>`,
+  target:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+  bar:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="10" width="4" height="11"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="3" width="4" height="18"/></svg>`,
+  chat:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+  arrow:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="9 18 15 12 9 6"/></svg>`,
+  back:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>`,
+  card:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 10h18"/><path d="M8 14h4"/></svg>`,
+  check:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`,
+  checkSm:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>`,
+  lock:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+  warn:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  ext:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
+  del:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 5H8L2 12l6 7h13a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>`,
+};
+
+// ── Splash ──
+function renderSplash(){
+  const fl=user.first_name[0]?.toUpperCase()||"D";
+  const av=user.photo_url
+    ?`<img src="${user.photo_url}" class="orb-avatar" referrerpolicy="no-referrer">`
+    :`<div class="orb-avatar-fb">${fl}</div>`;
+  return`<div id="splash">
+    <div class="splash-badge fu">⚡ PREMIUM ACCESS</div>
+    <div style="text-align:center" class="fu fu1">
+      <div class="splash-title">JaiClub<br>Sureshot</div>
+      <div class="splash-sub">India's No.1 Colour Prediction</div>
+    </div>
+    <div class="orbital fu fu2">
+      <div class="orb-ring"></div>
+      <div class="orb-ring2"></div>
+      <div class="orb-dot"></div>
+      <div class="orb-dot2"></div>
+      <div class="orb-center">
+        ${av}
+        <div class="orb-tick">${ico.checkSm}</div>
+      </div>
+    </div>
+    <div style="text-align:center" class="fu fu3">
+      <div class="splash-user-name">${user.first_name} ${user.last_name}</div>
+      <div class="splash-user-handle">@${user.username}</div>
+    </div>
+    <div class="splash-launch fu fu4"><span class="live-dot"></span>Launching your hack 🚀</div>
+    <div class="splash-prog fu fu5">
+      <div class="prog-track"><div class="prog-fill" id="pfill"></div></div>
+      <div class="prog-label">INITIALIZING <span id="pct">0%</span></div>
+    </div>
+  </div>`;
+}
+function startSplash(){
+  let p=0;
+  const iv=setInterval(()=>{
+    p+=Math.random()*16+5;
+    if(p>=100){clearInterval(iv);setTimeout(()=>go("home"),300)}
+    const f=document.getElementById("pfill"),c=document.getElementById("pct");
+    if(f)f.style.width=Math.min(p,100)+"%";
+    if(c)c.innerText=Math.min(Math.round(p),100)+"%";
+  },170);
+}
+
+// ── Home ──
+function renderHome(){
+  const oc=(id,cls,ico,ttl,sub,act)=>`<button class="opt ${cls}" onclick="${act}"><div class="opt-body"><div class="opt-ico">${ico}</div><div style="flex:1"><div class="opt-lbl">${ttl}</div><div class="opt-slbl">${sub}</div></div><div class="opt-arr">${ico_.arrow}</div></div></button>`;
+  // use separate helper to avoid conflict
+  return`<div class="screen">
+    <div class="topbar">
+      <div class="logo-wrap" id="logo-trigger">
+        <div class="logo-gem">${ico.shield}</div>
+        <div><div class="logo-name">JaiClub</div><div class="logo-sub">Sureshot · Premium</div></div>
+      </div>
+      <div class="topbar-live"><span class="live-dot"></span>Live</div>
+    </div>
+    <div class="hero fu">
+      <div class="hero-hey">Welcome back</div>
+      <div class="hero-name">Hey ${user.first_name} <em>👋</em></div>
+    </div>
+    <div class="info-banner fu fu1">
+      <div class="ib-scan"></div>
+      <div class="ib-title">${ico.shield} JaiClubGame Prediction Bot</div>
+      <div class="ib-desc">94% accuracy · Official UID required · Powered by AI signals</div>
+      <div class="ib-warn">${ico.warn.replace('32','16').replace('32','16')} Only UIDs from official registration work</div>
+    </div>
+    <div class="stats fu fu2">
+      <div class="stat"><div class="stat-v">94%</div><div class="stat-l">Accuracy</div></div>
+      <div class="stat"><div class="stat-v">12.4K</div><div class="stat-l">Members</div></div>
+      <div class="stat"><div class="stat-v">38✓</div><div class="stat-l">Today</div></div>
+    </div>
+    <div class="opts fu fu3">
+      <button class="opt green" onclick="chooseOption('number')"><div class="opt-body"><div class="opt-ico">${ico.target}</div><div style="flex:1"><div class="opt-lbl">Get Number Sureshot</div><div class="opt-slbl">Single-digit hit rate · 94% accuracy</div></div><div class="opt-arr">${ico.arrow}</div></div></button>
+      <button class="opt gold" onclick="chooseOption('bigsmall')"><div class="opt-body"><div class="opt-ico">${ico.bar}</div><div style="flex:1"><div class="opt-lbl">Get Big / Small Sureshot</div><div class="opt-slbl">Best big-small forecast</div></div><div class="opt-arr">${ico.arrow}</div></div></button>
+      <button class="opt gray" onclick="window.open('https://t.me/Shetty_Bhaiii','_blank')"><div class="opt-body"><div class="opt-ico">${ico.chat}</div><div style="flex:1"><div class="opt-lbl">Contact Support</div><div class="opt-slbl">Talk to admin · 24/7</div></div><div class="opt-arr">${ico.arrow}</div></div></button>
+    </div>
+    <div class="footer-note fu fu4">⚡ Pro tip — Only official link registered UIDs accepted</div>
+  </div>`;
+}
+
+// need to alias for home render
+const ico_={arrow:ico.arrow};
+
+// ── UID ──
+function renderUid(){
+  const nm=S.option==="number"?"Number Sureshot":"Big/Small Sureshot";
+  return`<div class="screen">
+    <div class="screen-hdr">
+      <div class="back-btn" onclick="resetHome()">${ico.back}</div>
+      <div class="chip chip-gold"><span class="chip-dot"></span>${nm}</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="reg-card fu">
+      <div class="reg-card-hdr">
+        <div class="reg-card-icon">${ico.card}</div>
+        <div>
+          <div class="reg-greet">Hey <span>${user.first_name}</span> 🧑‍💻 Welcome</div>
+          <div class="reg-steps">
+            <div class="reg-step"><span class="reg-step-n">1</span>Register via official link</div>
+            <div class="reg-step"><span class="reg-step-n">2</span>Complete registration below</div>
+            <div class="reg-step"><span class="reg-step-n">3</span>Enter your UID below</div>
+          </div>
+        </div>
+      </div>
+      <button class="reg-link-btn" onclick="window.open('https://www.jaiclub40.com/#/register?invitationCode=27868186702','_blank')">${ico.ext} Register on Official Site</button>
+      <div class="warn-strip">${ico.warn.replace('32','15').replace('32','15')} Unofficial link → verification fails</div>
+    </div>
+    <div class="inp-section fu fu1">
+      <div class="inp-label">Enter your UID</div>
+      <div class="inp-box ${S.uid?'has-v':''}" id="uid-display">
+        <div class="inp-val ${S.uid?'':'empty'}">${S.uid||'············'}</div>
+        <div class="inp-cnt">${S.uid.length}</div>
+      </div>
+    </div>
+    <div class="keypad fu fu2">
+      ${"123456789".split("").map(d=>`<button class="key" onclick="typeUid('${d}')">${d}</button>`).join("")}
+      <button class="key key-del" onclick="delUid()">${ico.del}</button>
+      <button class="key" onclick="typeUid('0')">0</button>
+      <button class="key key-ok" onclick="submitUid()">${ico.check}</button>
+    </div>
+    <div class="keypad-hint">🔒 Secure keypad · No clipboard access</div>
+  </div>`;
+}
+
+// ── Processing ──
+function renderProcessing(){
+  const steps=["Connecting to server...","Checking UID & device","Validating source..."];
+  return`<div id="processing">
+    <div class="proc-rings">
+      <div class="pr1"></div><div class="pr2"></div><div class="pr3"></div>
+      <div class="pr-core"></div>
+    </div>
+    <div class="proc-title">Verifying UID</div>
+    <div class="proc-sub">Please wait…</div>
+    <div class="proc-steps">
+      ${steps.map((t,i)=>`<div class="proc-step ${i<S.procStep?'done':i===S.procStep?'act':''}">
+        <div class="ps-ico">${i<S.procStep?ico.checkSm:i+1}</div>
+        <div class="ps-txt">${t}</div>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+
+// ── Result ──
+function renderResult(){
+  const lock=S.failReason==="device_mismatch";
+  return`<div class="screen">
+    <div class="screen-hdr">
+      <div class="back-btn" onclick="resetHome()">${ico.back}</div>
+      <div class="chip chip-red"><span class="chip-dot"></span>${lock?"Device Locked":"Failed"}</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="result-hero">
+      <div class="result-ico" style="color:var(--red)">${lock?ico.lock:ico.warn}</div>
+      <div class="result-tag">STATUS · ${lock?"LOCKED":"FAILED"}</div>
+      <div class="result-ttl">${lock?"UID Locked to Another Device":"Verification Failed"}</div>
+      <div class="result-uid">UID: <span style="color:var(--txt)">${S.uid}</span></div>
+    </div>
+    <div class="reasons">
+      ${lock?`
+        <div class="reason-card"><div class="rc-ico">🔒</div><div class="rc-txt">This UID is bound to another device.<br><strong>One UID = one device policy</strong></div></div>
+        <div class="reason-card"><div class="rc-ico">💬</div><div class="rc-txt">Contact admin to unbind: <strong>@Shetty_Bhaiii</strong></div></div>
+      `:`
+        <div class="reason-card"><div class="rc-ico">🚨</div><div class="rc-txt"><strong>Bot activation required</strong> — recharge ₹200 and retry.</div></div>
+        <div class="reason-card"><div class="rc-ico">⚠️</div><div class="rc-txt">Only UIDs from official registration are accepted.</div></div>
+      `}
+    </div>
+    <div class="action-row">
+      <button class="btn btn-g" onclick="${lock?"window.open('https://t.me/Shetty_Bhaiii','_blank')":"window.open('https://www.jaiclub40.com/#/register?invitationCode=27868186702','_blank')"}">${lock?"Contact Admin":"Register Official"}</button>
+    </div>
+    <div class="action-row">
+      <button class="btn btn-s" onclick="retryUid()">Re-enter UID</button>
+      <button class="btn btn-s" onclick="resetHome()">Home</button>
+    </div>
+  </div>`;
+}
+
+// ── Prediction ──
+function renderPrediction(){
+  const isN=S.option==="number";
+  const predBlock=S.loading
+    ?`<div class="pred-loading-box"><div class="pred-loading-txt">Generating prediction...</div><div class="pred-loading-ring"></div></div>`
+    :S.prediction
+      ?`<div class="pred-result">
+          <div class="pred-rlabel">Sureshot · Period ${S.period}</div>
+          ${isN
+            ?`<div class="pred-number">${S.prediction.value}</div>`
+            :`<div class="pred-bigsmall ${S.prediction.value==='BIG'?'big':'small'}">${S.prediction.value}</div>`
+          }
+          <div class="pred-confirm">Locked prediction · Play with confidence</div>
+        </div>`
+      :"";
+  return`<div class="screen">
+    <div class="screen-hdr">
+      <div class="back-btn" onclick="resetHome()">${ico.back}</div>
+      <div class="chip chip-g"><span class="chip-dot"></span>Verified</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="pred-card fu">
+      <div class="pred-card-inner">
+        <div class="pred-card-ico">${ico.check}</div>
+        <div>
+          <div class="pred-name">Welcome <span>${user.first_name}</span> ✓</div>
+          <div class="pred-uid">UID ${S.verifiedUid} verified</div>
+        </div>
+      </div>
+      <div class="pred-card-divider">
+        <div class="pred-mode-lbl">${isN?"Number Sureshot":"Big / Small Sureshot"}</div>
+        <div class="pred-mode-sub">Enter a 3-digit period number below</div>
+      </div>
+    </div>
+    <div class="toggle-row fu fu1">
+      <button class="tog-btn ${isN?'act-g':''}" onclick="switchOpt('number')">${ico.target} Number</button>
+      <button class="tog-btn ${!isN?'act-gold':''}" onclick="switchOpt('bigsmall')">${ico.bar} Big/Small</button>
+    </div>
+    <div class="inp-section fu fu2">
+      <div class="inp-label">Period Number</div>
+      <div id="period-display" class="inp-box ${S.period?'has-v':''}">
+        <div class="inp-val ${S.period?'':'empty'}">${S.period||'e.g. 247'}</div>
+        <div class="inp-cnt">${S.period.length}/3</div>
+      </div>
+    </div>
+    <div style="margin:14px 0" class="fu fu3">${predBlock}</div>
+    <div class="keypad fu fu4">
+      ${"123456789".split("").map(d=>`<button class="key" onclick="typePeriod('${d}')">${d}</button>`).join("")}
+      <button class="key key-del" onclick="delPeriod()">${ico.del}</button>
+      <button class="key" onclick="typePeriod('0')">0</button>
+      <button class="key key-ok" onclick="submitPeriod()">${S.loading?'<div style="width:24px;height:24px;border:2.5px solid rgba(0,0,0,.5);border-top-color:#000;border-radius:50%;animation:spin .6s linear infinite"></div>':ico.check}</button>
+    </div>
+    <div class="keypad-hint">Tap again to re-roll prediction</div>
+  </div>`;
+}
+
+// ── Admin ──
+async function renderAdmin(){
+  if(!S.adminOpen)return"";
+  const fl=mockUIDs.filter(e=>e.uid.includes(S.adminSearch));
+  return`<div class="admin-overlay" onclick="if(event.target===this)closeAdmin()">
+    <div class="admin-panel">
+      <div class="admin-hdr"><h3>⚙️ Admin Panel</h3><button class="admin-close" onclick="closeAdmin()">✕</button></div>
+      <div class="admin-search"><input type="text" placeholder="🔍 Search UID" id="admin-search" value="${S.adminSearch}" oninput="S.adminSearch=this.value;render()"></div>
+      <div class="admin-list">
+        ${fl.map(e=>`<div class="admin-item"><div><div class="ai-uid">${e.uid}</div><div class="ai-meta">${e.deviceId?"🔗 bound":"📱 free"} · ${e.active?"✅ Active":"❌ Inactive"}</div></div><div class="ai-actions"><button style="color:var(--gold)" onclick="toggleUID('${e.uid}')">${e.active?"Deactivate":"Activate"}</button><button style="color:var(--red)" onclick="deleteUID('${e.uid}')">Delete</button></div></div>`).join("")}
+        <div class="admin-item"><div><div class="ai-uid">${MASTER}</div><div class="ai-meta">🔓 Always allowed</div></div><span class="admin-badge">MASTER</span></div>
+      </div>
+      <div class="admin-add"><input id="new-uid-input" placeholder="Add 12-digit UID"><button onclick="addUID()">Add</button></div>
+    </div>
+  </div>`;
+}
+
+// ── Render ──
+async function render(){
+  const app=document.getElementById("app");
+  if(!app)return;
+  if(S.screen==="splash"){app.innerHTML=renderSplash();startSplash();return}
+  let html="";
+  switch(S.screen){
+    case"home":html=renderHome();break;
+    case"uid":html=renderUid();break;
+    case"processing":html=renderProcessing();break;
+    case"result":html=renderResult();break;
+    case"prediction":html=renderPrediction();break;
+    default:html=renderHome();
+  }
+  const adm=await renderAdmin();
+  app.innerHTML=html+adm;
+  if(S.screen==="home"){
+    const lt=document.getElementById("logo-trigger");
+    if(lt&&!lt._t){
+      let tap=0,t=null;
+      const h=()=>{tap++;if(t)clearTimeout(t);t=setTimeout(()=>tap=0,800);if(tap>=5){tap=0;openAdmin()}};
+      lt.addEventListener("click",h);lt._t=h;
+    }
+  }
+}
+
+// globals
+window.chooseOption=chooseOption;window.typeUid=typeUid;window.delUid=delUid;window.submitUid=submitUid;
+window.resetHome=resetHome;window.retryUid=retryUid;window.typePeriod=typePeriod;
+window.delPeriod=delPeriod;window.submitPeriod=submitPeriod;window.switchOpt=switchOpt;
+window.openAdmin=openAdmin;window.closeAdmin=closeAdmin;window.addUID=addUID;
+window.toggleUID=toggleUID;window.deleteUID=deleteUID;
+
+render();
+</script>
+</body>
+</html>
